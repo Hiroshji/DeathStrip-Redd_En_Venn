@@ -1,18 +1,12 @@
+# Description: This file contains the game logic for "Deathtrip". Text-based game where the player has to make decisions based on different scenarios.
 import pygame
 import sys
-from menu import Menu
-import os
-
-def start_game():
-    if os.path.exists("game.py"):
-        pygame.quit()
-        subprocess.run([sys.executable, "game.py"])
-    else:
-        print("Error: game.py not found!")
 
 class Game:
-    def __init__(self, screen):
-        self.screen = screen
+    def __init__(self):
+        pygame.init()  # Initialize Pygame inside the class
+        self.screen = pygame.display.set_mode((800, 600))  
+        pygame.display.set_caption("Deathtrip - Game")
         self.clock = pygame.time.Clock()
         self.running = True
         self.font = pygame.font.SysFont("Arial", 24)
@@ -84,12 +78,6 @@ class Game:
         sys.exit()
 
 # Start the game
-pygame.init()
-screen = pygame.display.set_mode((800, 600))
-
-menu = Menu(screen)
-result = menu.run()
-
-if result == "start_game":
-    game = Game(screen)
+if __name__ == "__main__":
+    game = Game()
     game.run()

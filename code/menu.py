@@ -1,6 +1,7 @@
+# Description: Main menu for the game. Contains buttons for starting the game and showing info.
 import pygame
 import sys
-import subprocess
+import os
 
 # Initialize Pygame
 pygame.init()
@@ -43,28 +44,28 @@ class Button:
 
 # Button actions
 def start_game():
-    pygame.quit()
-    subprocess.run([sys.executable, "game.py"])
+    import game
+    game.Game().run()
 
 def show_info():
     info_screen()
 
 # Info screen
 def info_screen():
-    running = True
-    while running:
+    running_info = True
+    while running_info:
         screen.fill(WHITE)
         text_surf = font.render("Deathtrip: Stop friends from driving under influence", True, BLACK)
         text_rect = text_surf.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
         screen.blit(text_surf, text_rect)
-        
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                running = False
-        
+                running_info = False
+
         pygame.display.flip()
 
 # Create buttons
@@ -73,25 +74,27 @@ buttons = [
     Button("Info", 20, SCREEN_HEIGHT - 40, 150, 50, show_info)
 ]
 
-# Main loop
-running = True
-while running:
-    screen.fill(WHITE)
-    
-    mouse_pos = pygame.mouse.get_pos()
-    
-    for button in buttons:
-        button.check_hover(mouse_pos)
-        button.draw(screen)
-    
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-        elif event.type == pygame.MOUSEBUTTONDOWN:
-            for button in buttons:
-                button.check_click(event.pos)
-    
-    pygame.display.flip()
+def run_menu():
+    running = True
+    while running:
+        screen.fill(WHITE)
+        mouse_pos = pygame.mouse.get_pos()
 
-pygame.quit()
-sys.exit()
+        for button in buttons:
+            button.check_hover(mouse_pos)
+            button.draw(screen)
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                for button in buttons:
+                    button.check_click(event.pos)
+
+        pygame.display.flip()
+
+    pygame.quit()
+    sys.exit()
+
+if __name__ == "__main__":
+    run_menu()
