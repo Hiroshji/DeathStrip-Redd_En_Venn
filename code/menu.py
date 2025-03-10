@@ -52,12 +52,23 @@ def show_info():
 
 # Info screen
 def info_screen():
+    def go_back():
+        nonlocal running_info
+        running_info = False
+    
+    # Create a local button for going back
+    back_button = Button("Back", 20, SCREEN_HEIGHT - 60, 150, 50, go_back)
     running_info = True
+
     while running_info:
         screen.fill(WHITE)
         text_surf = font.render("Deathtrip: Stop friends from driving under influence", True, BLACK)
         text_rect = text_surf.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
         screen.blit(text_surf, text_rect)
+
+        mouse_pos = pygame.mouse.get_pos()
+        back_button.check_hover(mouse_pos)
+        back_button.draw(screen)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -65,13 +76,15 @@ def info_screen():
                 sys.exit()
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 running_info = False
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                back_button.check_click(event.pos)
 
         pygame.display.flip()
 
 # Create buttons
 buttons = [
-    Button("New Game", 20, SCREEN_HEIGHT - 100, 150, 50, start_game),
-    Button("Info", 20, SCREEN_HEIGHT - 40, 150, 50, show_info)
+    Button("New Game", 20, SCREEN_HEIGHT - 120, 150, 50, start_game),
+    Button("Info", 20, SCREEN_HEIGHT - 60, 150, 50, show_info)
 ]
 
 def run_menu():
