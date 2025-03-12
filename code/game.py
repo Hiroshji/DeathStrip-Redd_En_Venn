@@ -37,11 +37,13 @@ class Game:
             "let_drive": ("La han kjøre", right_x, button_y, button_width, button_height),
         }
 
-        # Store dialogue text for each scene
+        # Store dialogue text for each scene including separate endings
         self.dialogues = {
             "start": "Velg om du vil drikke eller ikke:",
             "decision_1": "Du drakk. Nå må du stoppe vennen din fra å kjøre.",
-            "decision_2": "Du valgte å ikke drikke. Nå må du stoppe vennen din."
+            "decision_2": "Du valgte å ikke drikke. Nå må du stoppe vennen din.",
+            "ending_stop": "Du stoppet vennen din og reddet dagen!",  # Unique ending for stop_friend
+            "ending_drive": "Vennen din kjørte under påvirkning... en farlig avgjørelse!",  # Unique ending for let_drive
         }
 
         # Variables for typewriter dialogue effect
@@ -106,6 +108,7 @@ class Game:
             elif self.current_scene in ["decision_1", "decision_2"]:
                 self.draw_button("stop_friend")
                 self.draw_button("let_drive")
+            # For ending scenes, no decision buttons are shown.
 
     def draw_button(self, key):
         text, x, y, w, h = self.characters[key]
@@ -123,16 +126,22 @@ class Game:
         x, y = pos
         for key, (_, bx, by, bw, bh) in self.characters.items():
             if bx <= x <= bx + bw and by <= y <= by + bh:
+                # For the initial choices
                 if key == "drink":
                     self.current_scene = "decision_1"
                     self.reset_dialogue()
                 elif key == "no_drink":
                     self.current_scene = "decision_2"
                     self.reset_dialogue()
+                # For final decision options, set different endings so they don't repeat.
                 elif key == "stop_friend":
                     print("You stopped your friend!")  # Placeholder outcome
+                    self.current_scene = "ending_stop"
+                    self.reset_dialogue()
                 elif key == "let_drive":
                     print("Your friend drives under influence...")  # Placeholder outcome
+                    self.current_scene = "ending_drive"
+                    self.reset_dialogue()
 
     def run(self):
         while self.running:
