@@ -1,4 +1,3 @@
-# Description: Main menu for the game. Contains buttons for starting the game and showing info.
 import pygame
 import sys
 import os
@@ -7,7 +6,7 @@ import os
 pygame.init()
 
 # Screen settings
-SCREEN_WIDTH, SCREEN_HEIGHT = 800, 600
+SCREEN_WIDTH, SCREEN_HEIGHT = 1088, 612
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption("Deathtrip - Menu")
 
@@ -20,6 +19,11 @@ BLACK = (0, 0, 0)
 # Fonts
 font = pygame.font.Font(None, 36)
 
+# Load images
+button_box_img = pygame.image.load("images/button_box.png").convert_alpha()
+background_menu_img = pygame.image.load("images/background_menu.png").convert()
+background_menu_img = pygame.transform.scale(background_menu_img, (SCREEN_WIDTH, SCREEN_HEIGHT))
+
 # Button class
 class Button:
     def __init__(self, text, x, y, width, height, action):
@@ -29,9 +33,10 @@ class Button:
         self.hovered = False
 
     def draw(self, screen):
-        color = DARK_GRAY if self.hovered else GRAY
-        pygame.draw.rect(screen, color, self.rect)
-        text_surf = font.render(self.text, True, BLACK)
+        # Use the button image scaled to button size
+        scaled_img = pygame.transform.scale(button_box_img, (self.rect.width, self.rect.height))
+        screen.blit(scaled_img, (self.rect.x, self.rect.y))
+        text_surf = font.render(self.text, True, WHITE)
         text_rect = text_surf.get_rect(center=self.rect.center)
         screen.blit(text_surf, text_rect)
 
@@ -52,24 +57,33 @@ def show_info():
 
 # Info screen
 def info_screen():
+    # Use the same background image for a consistent look
+    background_img = background_menu_img
     def go_back():
         nonlocal running_info
         running_info = False
-    
-    # Create a local button for going back
+
+    # Create a local "Back" button (position stays the same as before)
     back_button = Button("Back", 20, SCREEN_HEIGHT - 60, 150, 50, go_back)
     running_info = True
-
     while running_info:
-        screen.fill(WHITE)
-        text_surf = font.render("Deathtrip: Stop friends from driving under influence", True, BLACK)
-        text_rect = text_surf.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
+        # Blit the background image
+        screen.blit(background_img, (0, 0))
+        
+        # Draw a plain rectangle as the background for the info text
+        box_rect = pygame.Rect(20, SCREEN_HEIGHT // 2 - 50, SCREEN_WIDTH - 40, 100)
+        pygame.draw.rect(screen, DARK_GRAY, box_rect)
+        pygame.draw.rect(screen, WHITE, box_rect, 2)
+        
+        # Render the info text in white
+        text_surf = font.render("Deathtrip: Stop friends from driving under influence", True, WHITE)
+        text_rect = text_surf.get_rect(center=box_rect.center)
         screen.blit(text_surf, text_rect)
-
+        
         mouse_pos = pygame.mouse.get_pos()
         back_button.check_hover(mouse_pos)
         back_button.draw(screen)
-
+        
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -78,10 +92,10 @@ def info_screen():
                 running_info = False
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 back_button.check_click(event.pos)
-
+        
         pygame.display.flip()
 
-# Create buttons
+# Create buttons for main menu
 buttons = [
     Button("New Game", 20, SCREEN_HEIGHT - 120, 150, 50, start_game),
     Button("Info", 20, SCREEN_HEIGHT - 60, 150, 50, show_info)
@@ -90,22 +104,23 @@ buttons = [
 def run_menu():
     running = True
     while running:
-        screen.fill(WHITE)
+        # Use the background image for the main menu
+        screen.blit(background_menu_img, (0, 0))
         mouse_pos = pygame.mouse.get_pos()
-
+        
         for button in buttons:
             button.check_hover(mouse_pos)
             button.draw(screen)
-
+        
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 for button in buttons:
                     button.check_click(event.pos)
-
+                    
         pygame.display.flip()
-
+    
     pygame.quit()
     sys.exit()
 

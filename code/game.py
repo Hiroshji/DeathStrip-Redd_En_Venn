@@ -4,7 +4,7 @@ import sys
 class Game:
     def __init__(self):
         pygame.init()  # Initialize Pygame inside the class
-        self.screen = pygame.display.set_mode((800, 600))
+        self.screen = pygame.display.set_mode((1088, 612))
         pygame.display.set_caption("Deathtrip - Game")
         self.clock = pygame.time.Clock()
         self.running = True
@@ -20,14 +20,14 @@ class Game:
         # Dialogue box configuration
         dialogue_box_height = 100
         bottom_margin = 20
-        dialogue_y = 600 - dialogue_box_height - bottom_margin  # dialogue box top y-coordinate
+        dialogue_y = 612 - dialogue_box_height - bottom_margin  # dialogue box top y-coordinate
 
         # Position buttons immediately above the dialogue box with a 10px gap.
         button_y = dialogue_y - button_height - 10
 
-        # For two buttons with a 20px gap, total width = 420. Center on 800px:
-        left_x = (800 - 420) // 2  # e.g. 190
-        right_x = left_x + button_width + 20  # e.g. 410
+        # For two buttons with a 20px gap, total width = 420. Center on 1088px:
+        left_x = (1088 - 420) // 2  # e.g. calculation of left x-position
+        right_x = left_x + button_width + 20
 
         # Clickable characters (name, x, y, width, height)
         self.characters = {
@@ -67,7 +67,7 @@ class Game:
         if not self.dialogue_finished:
             if self.dialogue_index < len(self.current_dialogue_full):
                 self.dialogue_timer += dt
-                if self.dialogue_timer >= 50:  # 50ms per character
+                if self.dialogue_timer >= 30:  # faster: 30ms per character
                     self.dialogue_progress += self.current_dialogue_full[self.dialogue_index]
                     self.dialogue_index += 1
                     self.dialogue_timer = 0
@@ -78,7 +78,7 @@ class Game:
         else:
             # Once finished, wait a delay then clear dialogue so that decision buttons appear.
             self.post_dialogue_timer += dt
-            if self.post_dialogue_timer >= 2000:  # 2-second delay
+            if self.post_dialogue_timer >= 1000:  # 1 second delay
                 self.dialogue_progress = ""
 
     def draw_text(self, text, x, y, color=(255, 255, 255)):
@@ -87,7 +87,7 @@ class Game:
 
     def draw_dialogue_box(self, dialogue):
         # Define dialogue box rectangle (with 20px left/right margins)
-        box_rect = pygame.Rect(20, 600 - 100 - 20, 800 - 40, 100)
+        box_rect = pygame.Rect(20, 612 - 100 - 20, 1088 - 40, 100)
         # Draw background
         pygame.draw.rect(self.screen, (50, 50, 50), box_rect)
         # Draw border
@@ -97,10 +97,11 @@ class Game:
 
     def draw_scene(self):
         self.screen.fill((0, 0, 0))
-        # Draw the dialogue box with the current dialogue progress
-        self.draw_dialogue_box(self.dialogue_progress)
+        # Only draw the dialogue box if there's text to show
+        if self.dialogue_progress != "":
+            self.draw_dialogue_box(self.dialogue_progress)
 
-        # Only show buttons when dialogue_progress is cleared
+        # Show buttons when dialogue text is cleared
         if self.dialogue_progress == "":
             if self.current_scene == "start":
                 self.draw_button("drink")
