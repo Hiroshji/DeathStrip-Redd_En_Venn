@@ -52,34 +52,49 @@ def start_game():
     import game
     game.Game().run()
 
+def open_settings():
+    import settings  # This will run settings.py
+
 def show_info():
     info_screen()
 
 # Info screen
-def info_screen():
-    # Use the same background image for a consistent look
+def select_chapter():
+    # Use the same background image for consistency
     background_img = background_menu_img
-    def go_back():
-        nonlocal running_info
-        running_info = False
 
-    # Create a local "Back" button (position stays the same as before)
-    back_button = Button("Back", 20, SCREEN_HEIGHT - 60, 150, 50, go_back)
-    running_info = True
-    while running_info:
-        # Blit the background image
+    def go_back():
+        nonlocal running_chapter
+        running_chapter = False
+
+    back_button = Button("Tilbake", 20, SCREEN_HEIGHT - 60, 150, 50, go_back)
+
+    # Define the chapter squares
+    square_size = 150
+    spacing = 20
+    total_width = 4 * square_size + 3 * spacing
+    start_x = (SCREEN_WIDTH - total_width) // 2
+    y = SCREEN_HEIGHT // 2 - square_size // 2
+
+    # Create a list of chapter rectangles
+    chapters = [
+        pygame.Rect(start_x + i * (square_size + spacing), y, square_size, square_size)
+        for i in range(4)
+    ]
+
+    running_chapter = True
+    while running_chapter:
         screen.blit(background_img, (0, 0))
         
-        # Draw a plain rectangle as the background for the info text
-        box_rect = pygame.Rect(20, SCREEN_HEIGHT // 2 - 50, SCREEN_WIDTH - 40, 100)
-        pygame.draw.rect(screen, DARK_GRAY, box_rect)
-        pygame.draw.rect(screen, WHITE, box_rect, 2)
+        # Draw the chapter squares
+        for i, rect in enumerate(chapters):
+            pygame.draw.rect(screen, DARK_GRAY, rect)
+            pygame.draw.rect(screen, WHITE, rect, 2)
+            chapter_text = font.render(str(i + 1), True, WHITE)
+            text_rect = chapter_text.get_rect(center=rect.center)
+            screen.blit(chapter_text, text_rect)
         
-        # Render the info text in white
-        text_surf = font.render("Deathtrip: Stop friends from driving under influence", True, WHITE)
-        text_rect = text_surf.get_rect(center=box_rect.center)
-        screen.blit(text_surf, text_rect)
-        
+        # Draw the back button
         mouse_pos = pygame.mouse.get_pos()
         back_button.check_hover(mouse_pos)
         back_button.draw(screen)
@@ -89,16 +104,20 @@ def info_screen():
                 pygame.quit()
                 sys.exit()
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                running_info = False
+                running_chapter = False
             elif event.type == pygame.MOUSEBUTTONDOWN:
+                for i, rect in enumerate(chapters):
+                    if rect.collidepoint(event.pos):
+                        print(f"Chapter {i + 1} clicked. (Functionality not implemented)")
                 back_button.check_click(event.pos)
         
         pygame.display.flip()
 
 # Create buttons for main menu
 buttons = [
-    Button("New Game", 20, SCREEN_HEIGHT - 120, 150, 50, start_game),
-    Button("Info", 20, SCREEN_HEIGHT - 60, 150, 50, show_info)
+    Button("Start Spill", 20, SCREEN_HEIGHT - 220, 250, 70, start_game),
+    Button("Kapitel", 40, SCREEN_HEIGHT - 150, 250, 70, select_chapter),
+    Button("Innstillinger", 60, SCREEN_HEIGHT - 80, 250, 70, open_settings)
 ]
 
 def run_menu():
