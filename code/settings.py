@@ -1,5 +1,6 @@
 import pygame
 import sys
+import os
 
 pygame.init()
 
@@ -15,10 +16,34 @@ DARK_GRAY = (150, 150, 150)
 BLACK = (0, 0, 0)
 font = pygame.font.Font(None, 36)
 
+# --- Config file functions ---
+def read_config():
+    # Check if config.txt exists; if not create one with default volume=1.0.
+    config_path = "config.txt"
+    if os.path.exists(config_path):
+        with open(config_path, "r") as f:
+            line = f.readline().strip()
+            try:
+                vol = float(line.split("=")[1])
+            except Exception as e:
+                vol = 1.0
+            return vol
+    else:
+        with open(config_path, "w") as f:
+            f.write("volume=1.0")
+        return 1.0
+
+def update_config(new_value):
+    config_path = "config.txt"
+    with open(config_path, "w") as f:
+        f.write("volume=" + str(new_value))
+
 # Load the button click sound from the "sound" folder using try/except
 try:
-    button_click_sound = pygame.mixer.Sound("sound/button.click")  # Adjust name/extension if necessary.
-    button_click_sound.set_volume(0.5)  # Default volume
+    button_click_sound = pygame.mixer.Sound("sound/button_click.wav")  # Adjust file name/extension if necessary.
+    # Set volume using the config value (scaled to 0.0-1.0)
+    config_volume = read_config()
+    button_click_sound.set_volume(min(config_volume / 5.0, 1.0))
 except Exception as e:
     print("Error loading sound:", e)
     button_click_sound = None
@@ -60,8 +85,9 @@ class AnimatedButton:
                     self.action()
 
 # Simple horizontal slider to control the button click sound volume
+# Slider range is 0.0 to 5.0 even though effective volume is scaled to 0.0–1.0.
 class Slider:
-    def __init__(self, x, y, width, height, min_val=0.0, max_val=1.0, initial=0.5):
+    def __init__(self, x, y, width, height, min_val=0.0, max_val=5.0, initial=1.0):
         self.rect = pygame.Rect(x, y, width, height)
         self.min_val = min_val
         self.max_val = max_val
@@ -93,18 +119,30 @@ class Slider:
             self.handle_x = max(self.rect.x, min(event.pos[0], self.rect.x + self.rect.width))
             ratio = (self.handle_x - self.rect.x) / self.rect.width
             self.value = self.min_val + ratio * (self.max_val - self.min_val)
+            # Scale the slider value to effective volume (0.0–1.0); update sound volume
             if button_click_sound:
-                button_click_sound.set_volume(self.value)
+                button_click_sound.set_volume(min(self.value / self.max_val, 1.0))
+            # Update the config file with the new slider value
+            update_config(self.value)
 
 def settings_screen():
     clock = pygame.time.Clock()
     running = True
 
+    # Read volume from config file and use that as the slider's initial value.
+    initial_volume = read_config()
+
     # Create an animated sample button
     sample_button = AnimatedButton("Test Button", 100, 100, 200, 50,
                                    lambda: print("Button action executed"))
-    # Create a volume slider for controlling button sound volume
-    slider = Slider(100, 200, 300, 20, initial=0.5)
+    # Create a volume slider for controlling button sound volume; slider range is 0.0 to 5.0.
+    slider = Slider(100, 200, 300, 20, min_val=0.0, max_val=5.0, initial=initial_volume)
+    
+    # Create a "Tilbake" (Return) button positioned at bottom left (like in chapters)
+    def return_to_menu():
+        nonlocal running
+        running = False
+    return_button = AnimatedButton("Tilbake", 20, SCREEN_HEIGHT - 60, 150, 50, return_to_menu)
 
     while running:
         dt = clock.tick(60)
@@ -113,21 +151,25 @@ def settings_screen():
                 running = False
             sample_button.handle_event(event)
             slider.update(event)
+            return_button.handle_event(event)
 
         sample_button.update()
+        return_button.update()
 
         screen.fill(BLACK)
         sample_button.draw(screen)
         slider.draw(screen)
+        return_button.draw(screen)
 
-        # Display current volume value
+        # Display current volume value from slider
         volume_text = font.render(f"Volume: {slider.value:.2f}", True, WHITE)
         screen.blit(volume_text, (100, 240))
 
         pygame.display.flip()
 
-    pygame.quit()
-    sys.exit()
+    # Instead of quitting pygame, return to menu:
+    import menu
+    menu.run_menu()
 
 if __name__ == "__main__":
     settings_screen()

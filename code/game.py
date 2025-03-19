@@ -8,11 +8,30 @@ pygame.init()
 screen = pygame.display.set_mode((1088, 612))
 pygame.display.set_caption("Deathtrip - Game")
 
+# --- Config file functions ---
+def read_config():
+    # Check if config.txt exists; if not create one with default volume=1.0.
+    config_path = "config.txt"
+    if os.path.exists(config_path):
+        with open(config_path, "r") as f:
+            line = f.readline().strip()
+            try:
+                vol = float(line.split("=")[1])
+            except Exception as e:
+                vol = 1.0
+            return vol
+    else:
+        with open(config_path, "w") as f:
+            f.write("volume=1.0")
+        return 1.0
+
 # Now load assets
 button_box_img = pygame.image.load("images/button_box.png").convert_alpha()
 try:
-    button_click_sound = pygame.mixer.Sound(os.path.join("sound", "button.click"))
-    button_click_sound.set_volume(0.5)
+    button_click_sound = pygame.mixer.Sound(os.path.join("sound", "button_click.wav"))
+    # Read the volume from the config (slider range 0.0–5.0 scaled to 0.0–1.0)
+    config_volume = read_config()
+    button_click_sound.set_volume(min(config_volume / 5.0, 1.0))
 except Exception as e:
     print("Error loading sound:", e)
     button_click_sound = None
@@ -58,7 +77,6 @@ class AnimatedButton:
 
 class Game:
     def __init__(self):
-        # We already set a display, so use it
         self.screen = screen
         self.clock = pygame.time.Clock()
         self.running = True
@@ -92,7 +110,7 @@ class Game:
         self.right_x = self.left_x + self.button_width + 20
 
         # Decision buttons (will be created when dialogue is cleared)
-        self.decision_buttons = {}  # Keys will be decision keys
+        self.decision_buttons = {}
 
     def reset_dialogue(self):
         self.current_dialogue_full = self.dialogues.get(self.current_scene, "")
@@ -101,11 +119,9 @@ class Game:
         self.dialogue_timer = 0
         self.dialogue_finished = False
         self.post_dialogue_timer = 0
-        # Clear any previously created decision buttons
         self.decision_buttons = {}
 
     def update_dialogue(self, dt):
-        # Typewriter effect: add one character every 30ms if dialogue is not finished.
         if not self.dialogue_finished:
             if self.dialogue_index < len(self.current_dialogue_full):
                 self.dialogue_timer += dt
@@ -117,7 +133,6 @@ class Game:
                 self.dialogue_finished = True
                 self.post_dialogue_timer = 0
         else:
-            # After the full dialogue is shown, wait 1 second then clear the dialogue
             self.post_dialogue_timer += dt
             if self.post_dialogue_timer >= 1000:
                 self.dialogue_progress = ""
@@ -133,7 +148,6 @@ class Game:
         self.draw_text(dialogue, box_rect.x + 10, box_rect.y + 10)
 
     def create_decision_buttons(self):
-        # Create decision buttons based on the current scene
         if self.current_scene == "start":
             self.decision_buttons = {
                 "drink": AnimatedButton("Drikk", self.left_x, self.button_y, self.button_width, self.button_height,
@@ -155,23 +169,20 @@ class Game:
         elif decision == "no_drink":
             self.current_scene = "decision_2"
         elif decision == "stop_friend":
-            print("You stopped your friend!")  # Placeholder outcome
+            print("You stopped your friend!")
             self.current_scene = "ending_stop"
         elif decision == "let_drive":
-            print("Your friend drives under influence...")  # Placeholder outcome
+            print("Your friend drives under influence...")
             self.current_scene = "ending_drive"
         self.reset_dialogue()
 
     def draw_scene(self):
         self.screen.fill((0, 0, 0))
-        # Draw dialogue box if dialogue_progress is not empty
         if self.dialogue_progress != "":
             self.draw_dialogue_box(self.dialogue_progress)
         else:
-            # Create decision buttons if they haven't been created
             if not self.decision_buttons:
                 self.create_decision_buttons()
-            # Update and draw each decision button
             for btn in self.decision_buttons.values():
                 btn.update()
                 btn.draw(self.screen)
@@ -182,7 +193,6 @@ class Game:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.running = False
-                # When dialogue is cleared (buttons are active), pass events to them.
                 if self.dialogue_progress == "" and self.decision_buttons:
                     for btn in self.decision_buttons.values():
                         btn.handle_event(event)

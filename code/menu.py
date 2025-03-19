@@ -4,6 +4,23 @@ import os
 
 pygame.init()
 
+# --- Config file functions ---
+def read_config():
+    # Check if config.txt exists; if not create one with default volume=1.0.
+    config_path = "config.txt"
+    if os.path.exists(config_path):
+        with open(config_path, "r") as f:
+            line = f.readline().strip()
+            try:
+                vol = float(line.split("=")[1])
+            except Exception as e:
+                vol = 1.0
+            return vol
+    else:
+        with open(config_path, "w") as f:
+            f.write("volume=1.0")
+        return 1.0
+
 # Screen settings
 SCREEN_WIDTH, SCREEN_HEIGHT = 1088, 612
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -23,10 +40,13 @@ button_box_img = pygame.image.load("images/button_box.png").convert_alpha()
 background_menu_img = pygame.image.load("images/background_menu.png").convert()
 background_menu_img = pygame.transform.scale(background_menu_img, (SCREEN_WIDTH, SCREEN_HEIGHT))
 
-# Load button click sound
+# Read volume from config file
+config_volume = read_config()
+
+# Load button click sound and set volume (slider range is 0.0–5.0; scale to 0.0–1.0)
 try:
-    button_click_sound = pygame.mixer.Sound(os.path.join("sound", "button.click"))
-    button_click_sound.set_volume(0.5)
+    button_click_sound = pygame.mixer.Sound(os.path.join("sound", "button_click.wav"))
+    button_click_sound.set_volume(min(config_volume / 5.0, 1.0))
 except Exception as e:
     print("Error loading sound:", e)
     button_click_sound = None
@@ -79,7 +99,9 @@ def open_settings():
     settings.settings_screen()
 
 def select_chapter():
-    background_img = background_menu_img
+    # Load chapter-specific background
+    background_img = pygame.image.load("images/background_chapter.png").convert()
+    background_img = pygame.transform.scale(background_img, (SCREEN_WIDTH, SCREEN_HEIGHT))
 
     def go_back():
         nonlocal running_chapter
@@ -108,7 +130,6 @@ def select_chapter():
             text_rect = chapter_text.get_rect(center=rect.center)
             screen.blit(chapter_text, text_rect)
 
-        mouse_pos = pygame.mouse.get_pos()
         back_button.draw(screen)
         back_button.update()
 
@@ -139,8 +160,6 @@ def run_menu():
     running = True
     while running:
         screen.blit(background_menu_img, (0, 0))
-        mouse_pos = pygame.mouse.get_pos()
-
         for button in buttons:
             button.update()
             button.draw(screen)
