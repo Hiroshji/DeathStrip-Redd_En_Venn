@@ -1,6 +1,7 @@
 import pygame
 import sys
 import os
+from transition import FadeTransition  # Import the transition class
 
 pygame.init()
 
@@ -43,7 +44,7 @@ background_menu_img = pygame.transform.scale(background_menu_img, (SCREEN_WIDTH,
 # Read volume from config file
 config_volume = read_config()
 
-# Load button click sound and set volume (slider range is 0.0–5.0; scale to 0.0–1.0)
+# Load button click sound and set volume (slider range is 0.0–5.0; scaled to 0.0–1.0)
 try:
     button_click_sound = pygame.mixer.Sound(os.path.join("sound", "button_click.wav"))
     button_click_sound.set_volume(min(config_volume / 5.0, 1.0))
@@ -89,38 +90,61 @@ class AnimatedButton:
                 if self.rect.collidepoint(event.pos):
                     self.action()
 
-# Button actions
+# Helper function to perform a wipe transition before executing an action.
+def do_fade_transition(action):
+    fade_effect = FadeTransition(screen, speed=10, color=BLACK)
+    fade_effect.start()
+    clock = pygame.time.Clock()
+    triggered_action = False
+    while not fade_effect.done:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+        # Show current background during fade in phase
+        if fade_effect.phase == "fade_in":
+            screen.blit(background_menu_img, (0, 0))
+        # When fade reaches black, trigger the new scene
+        if not triggered_action and fade_effect.phase == "fade_out":
+            action()  # Setup the new scene
+            triggered_action = True
+        fade_effect.update()
+        fade_effect.draw()
+        pygame.display.flip()
+        clock.tick(60)
+
+# Button actions using the transition helper
 def start_game():
     import game
-    game.Game().run()
+    do_fade_transition(lambda: game.Game().run())
 
 def open_settings():
     import settings
-    settings.settings_screen()
+    do_fade_transition(lambda: settings.settings_screen())
 
 def select_chapter():
     # Load chapter-specific background
     background_img = pygame.image.load("images/background_chapter.png").convert()
     background_img = pygame.transform.scale(background_img, (SCREEN_WIDTH, SCREEN_HEIGHT))
-
+    
+    running_chapter = True
+    
     def go_back():
         nonlocal running_chapter
         running_chapter = False
-
+        
     back_button = AnimatedButton("Tilbake", 20, SCREEN_HEIGHT - 60, 150, 50, go_back)
-
+    
     square_size = 150
     spacing = 20
     total_width = 4 * square_size + 3 * spacing
     start_x = (SCREEN_WIDTH - total_width) // 2
     y = SCREEN_HEIGHT // 2 - square_size // 2
-
     chapters = [
         pygame.Rect(start_x + i * (square_size + spacing), y, square_size, square_size)
         for i in range(4)
     ]
-
-    running_chapter = True
+    
     while running_chapter:
         screen.blit(background_img, (0, 0))
         for i, rect in enumerate(chapters):
@@ -129,10 +153,8 @@ def select_chapter():
             chapter_text = font.render(str(i + 1), True, WHITE)
             text_rect = chapter_text.get_rect(center=rect.center)
             screen.blit(chapter_text, text_rect)
-
         back_button.draw(screen)
         back_button.update()
-
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -146,13 +168,15 @@ def select_chapter():
                 back_button.handle_event(event)
             elif event.type == pygame.MOUSEBUTTONUP:
                 back_button.handle_event(event)
-
         pygame.display.flip()
+    
+    do_fade_transition(lambda: run_menu())
 
 # Create animated buttons for main menu
 buttons = [
     AnimatedButton("Start Spill", 20, SCREEN_HEIGHT - 220, 250, 70, start_game),
-    AnimatedButton("Kapitel", 40, SCREEN_HEIGHT - 150, 250, 70, select_chapter),
+    # Wrap the Kapitel action in do_fade_transition:
+    AnimatedButton("Kapitel", 40, SCREEN_HEIGHT - 150, 250, 70, lambda: do_fade_transition(select_chapter)),
     AnimatedButton("Innstillinger", 60, SCREEN_HEIGHT - 80, 250, 70, open_settings)
 ]
 
@@ -163,16 +187,13 @@ def run_menu():
         for button in buttons:
             button.update()
             button.draw(screen)
-
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
             elif event.type in (pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP):
                 for button in buttons:
                     button.handle_event(event)
-
         pygame.display.flip()
-
     pygame.quit()
     sys.exit()
 
