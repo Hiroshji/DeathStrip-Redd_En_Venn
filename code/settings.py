@@ -1,6 +1,7 @@
 import pygame
 import sys
 import os
+from menu import do_fade_transition, run_menu
 
 pygame.init()
 
@@ -131,19 +132,26 @@ def settings_screen():
 
     # Read volume from config file and use that as the slider's initial value.
     initial_volume = read_config()
+    
+    # Use the same background as the chapters screen.
+    background_img = pygame.image.load("images/background_chapter.png").convert()
+    background_img = pygame.transform.scale(background_img, (SCREEN_WIDTH, SCREEN_HEIGHT))
 
-    # Create an animated sample button
+    # Create UI elements.
     sample_button = AnimatedButton("Test Button", 100, 100, 200, 50,
                                    lambda: print("Button action executed"))
-    # Create a volume slider for controlling button sound volume; slider range is 0.0 to 5.0.
     slider = Slider(100, 200, 300, 20, min_val=0.0, max_val=5.0, initial=initial_volume)
     
-    # Create a "Tilbake" (Return) button positioned at bottom left (like in chapters)
+    # Define a callback that triggers the fade transition and then goes to the menu.
     def return_to_menu():
+        do_fade_transition(lambda: run_menu())
         nonlocal running
         running = False
+
+    # Create the "Tilbake" (Return) button.
     return_button = AnimatedButton("Tilbake", 20, SCREEN_HEIGHT - 60, 150, 50, return_to_menu)
 
+    # Main loop.
     while running:
         dt = clock.tick(60)
         for event in pygame.event.get():
@@ -156,18 +164,19 @@ def settings_screen():
         sample_button.update()
         return_button.update()
 
-        screen.fill(BLACK)
+        # Blit the chapter background.
+        screen.blit(background_img, (0, 0))
         sample_button.draw(screen)
         slider.draw(screen)
         return_button.draw(screen)
 
-        # Display current volume value from slider
+        # Display the current volume level.
         volume_text = font.render(f"Volume: {slider.value:.2f}", True, WHITE)
         screen.blit(volume_text, (100, 240))
 
         pygame.display.flip()
 
-    # Instead of quitting pygame, return to menu:
+    # After the loop ends, transition back to the menu.
     import menu
     menu.run_menu()
 

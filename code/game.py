@@ -85,11 +85,30 @@ class Game:
         # Game state and dialogues
         self.current_scene = "start"
         self.dialogues = {
-            "start": "Velg om du vil drikke eller ikke:",
-            "decision_1": "Du drakk. Nå må du stoppe vennen din fra å kjøre.",
-            "decision_2": "Du valgte å ikke drikke. Nå må du stoppe vennen din.",
+            "start": "Hei, kom og ta en shot med oss!",
+            "decision_1": "Jeg vet ikke, jeg skal tidlig opp i morgen.",
+            "decision_2": "Slapp av, én drink skader ikke! Vi skal jo bare ha det gøy.",
+            "decision_3": "Drikker du alkohol?",
+            "scene_2": "Hva gjør du?",
+            "scene_2_1": "Jeg skal hjem. Det går fint, jeg har kontroll.",
+            "scene_2_2": "Er du sikker på at du burde kjøre? Kanskje det er bedre å vente litt eller få noen til å kjøre deg?",
+            "scene_2_3": "Slapp av, jeg føler meg helt fin. Det er ingen problem.",
+            "scene_2_4": "Det handler ikke bare om deg. Hva om noe skjer?",
+            "scene_2_5": "Det skjer ikke noe, jeg har full kontroll. Slutt å bekymre deg.",
+            "decision_4": "Stoppe de fra å gå ut?",
+            "scene_3": "Vent litt, kanskje vi heller kan bestille en taxi?",
+            "scene_3_1": "Nei, nei, jeg er helt fin. Dette går bra.",
+            "scene_3_2": "Men tenk om noe skjer? Det er ikke verdt risikoen.",
+            "scene_3_3": "Jeg sier det går fint. Hvorfor lager du så mye drama?",
+            "decision_5": "Prøve igjen å stoppe de fra å kjøre?",
+            "scene_4": "Kom igjen, bare hopp inn, vi kommer oss kjapt hjem!",
+            "scene_4_1": "Jeg vet ikke... Jeg føler meg ikke trygg.",
+            "scene_4_2": "Slutt å overtenke, det går bra! Vil du hjem eller ikke?",
+            "decision_6": "Sitte på eller ikke?",
             "ending_stop": "Du stoppet vennen din og reddet dagen!",
             "ending_drive": "Vennen din kjørte under påvirkning... en farlig avgjørelse!",
+            "ending_crash": "Bilen kjører av gårde. Hører et smell i det fjerne.",
+            "ending_blackout": "Du setter deg inn. Klipp til svart skjerm → Lyden av bremsing og krasj.",
         }
         self.current_dialogue_full = self.dialogues[self.current_scene]
         self.dialogue_progress = ""
@@ -108,8 +127,8 @@ class Game:
         total_buttons_width = self.button_width * 2 + 20  # two buttons with 20px gap
         self.left_x = (1088 - total_buttons_width) // 2
         self.right_x = self.left_x + self.button_width + 20
-
-        # Decision buttons (will be created when dialogue is cleared)
+        
+        # Initialize decision_buttons so it exists when referenced.
         self.decision_buttons = {}
 
     def reset_dialogue(self):
@@ -148,19 +167,33 @@ class Game:
         self.draw_text(dialogue, box_rect.x + 10, box_rect.y + 10)
 
     def create_decision_buttons(self):
-        if self.current_scene == "start":
+        if self.current_scene == "decision_3":
             self.decision_buttons = {
-                "drink": AnimatedButton("Drikk", self.left_x, self.button_y, self.button_width, self.button_height,
+                "drink": AnimatedButton("Ja", self.left_x, self.button_y, self.button_width, self.button_height,
                                           lambda: self.handle_decision("drink")),
-                "no_drink": AnimatedButton("Ikke drikk", self.right_x, self.button_y, self.button_width, self.button_height,
+                "no_drink": AnimatedButton("Nei", self.right_x, self.button_y, self.button_width, self.button_height,
                                            lambda: self.handle_decision("no_drink")),
             }
-        elif self.current_scene in ["decision_1", "decision_2"]:
+        elif self.current_scene == "decision_4":
             self.decision_buttons = {
-                "stop_friend": AnimatedButton("Stoppe", self.left_x, self.button_y, self.button_width, self.button_height,
+                "stop_friend": AnimatedButton("Ja", self.left_x, self.button_y, self.button_width, self.button_height,
                                               lambda: self.handle_decision("stop_friend")),
-                "let_drive": AnimatedButton("La han kjøre", self.right_x, self.button_y, self.button_width, self.button_height,
+                "let_drive": AnimatedButton("Nei", self.right_x, self.button_y, self.button_width, self.button_height,
                                             lambda: self.handle_decision("let_drive")),
+            }
+        elif self.current_scene == "decision_5":
+            self.decision_buttons = {
+                "stop_again": AnimatedButton("Ja", self.left_x, self.button_y, self.button_width, self.button_height,
+                                              lambda: self.handle_decision("stop_again")),
+                "let_go": AnimatedButton("Nei", self.right_x, self.button_y, self.button_width, self.button_height,
+                                          lambda: self.handle_decision("let_go")),
+            }
+        elif self.current_scene == "decision_6":
+            self.decision_buttons = {
+                "stay": AnimatedButton("Nei", self.left_x, self.button_y, self.button_width, self.button_height,
+                                          lambda: self.handle_decision("stay")),
+                "ride": AnimatedButton("Ja", self.right_x, self.button_y, self.button_width, self.button_height,
+                                         lambda: self.handle_decision("ride")),
             }
 
     def handle_decision(self, decision):
@@ -169,11 +202,17 @@ class Game:
         elif decision == "no_drink":
             self.current_scene = "decision_2"
         elif decision == "stop_friend":
-            print("You stopped your friend!")
             self.current_scene = "ending_stop"
         elif decision == "let_drive":
-            print("Your friend drives under influence...")
-            self.current_scene = "ending_drive"
+            self.current_scene = "scene_3"
+        elif decision == "stop_again":
+            self.current_scene = "ending_stop"
+        elif decision == "let_go":
+            self.current_scene = "scene_4"
+        elif decision == "stay":
+            self.current_scene = "ending_crash"
+        elif decision == "ride":
+            self.current_scene = "ending_blackout"
         self.reset_dialogue()
 
     def draw_scene(self):
