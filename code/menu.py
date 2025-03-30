@@ -36,6 +36,31 @@ BLACK = (0, 0, 0)
 # Fonts
 font = pygame.font.Font(None, 36)
 
+# Define your target size for the logo display.
+target_width, target_height = 400, 200
+
+# Load the full square logo image.
+orig_logo = pygame.image.load("images/logo.png").convert_alpha()
+
+# Use the entire image rather than cropping.
+logo_content = orig_logo
+
+# Compute a scale factor so that the full image fits inside the target area.
+scale_factor = min(target_width / logo_content.get_width(), target_height / logo_content.get_height())
+scaled_width = int(logo_content.get_width() * scale_factor)
+scaled_height = int(logo_content.get_height() * scale_factor)
+
+# Scale the full logo while preserving the image.
+scaled_logo = pygame.transform.smoothscale(logo_content, (scaled_width, scaled_height))
+
+# Create a new surface with the target dimensions and a transparent background.
+logo_img = pygame.Surface((target_width, target_height), pygame.SRCALPHA)
+
+# Center the scaled logo on the new surface.
+x_offset = (target_width - scaled_width) // 2
+y_offset = (target_height - scaled_height) // 2
+logo_img.blit(scaled_logo, (x_offset, y_offset))
+
 # Load images
 button_box_img = pygame.image.load("images/button_box.png").convert_alpha()
 background_menu_img = pygame.image.load("images/background_menu.png").convert()
@@ -184,6 +209,10 @@ def run_menu():
     running = True
     while running:
         screen.blit(background_menu_img, (0, 0))
+        logo_x = -35
+        logo_y = 20
+        screen.blit(logo_img, (logo_x, logo_y))
+        
         for button in buttons:
             button.update()
             button.draw(screen)
