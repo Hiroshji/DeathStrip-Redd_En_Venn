@@ -195,18 +195,36 @@ class Game:
                     self.dialogue_finished = True
                     self.post_dialogue_timer = 0
             else:
-                # Wait a moment after finishing the line before advancing.
                 self.post_dialogue_timer += dt
-                keys = pygame.key.get_pressed()
-                if keys[pygame.K_SPACE] or self.post_dialogue_timer >= 1000:
-                    self.current_line_index += 1
-                    self.dialogue_progress = ""
-                    self.dialogue_index = 0
-                    self.dialogue_timer = 0
-                    self.dialogue_finished = False
+                # If the current scene is one of the info (wrong decision) scenes,
+                # auto-transition after a brief delay.
+                if self.current_scene in {"info_drink", "info_exit_A", "info_try_stop_A", "info_seat_B"}:
+                    if self.post_dialogue_timer >= 1000:
+                        self.auto_transition()
+                else:
+                    # For narrative/dialogue scenes that require continuation, allow space press or delay.
+                    keys = pygame.key.get_pressed()
+                    if keys[pygame.K_SPACE] or self.post_dialogue_timer >= 1000:
+                        self.current_line_index += 1
+                        self.dialogue_progress = ""
+                        self.dialogue_index = 0
+                        self.dialogue_timer = 0
+                        self.dialogue_finished = False
         else:
             # All dialogue lines are done.
             self.dialogue_progress = ""
+
+    def auto_transition(self):
+        # Mapping for info scenes to the next scene in the story.
+        auto_mapping = {
+            "info_drink": "scene_2",
+            "info_exit_A": "scene_3",
+            "info_try_stop_A": "scene_4",
+            "info_seat_B": "ending_drive"
+        }
+        if self.current_scene in auto_mapping:
+            self.current_scene = auto_mapping[self.current_scene]
+            self.reset_dialogue()
 
     def draw_text(self, text, x, y, color=(255, 255, 255)):
         text_surface = self.font.render(text, True, color)
