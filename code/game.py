@@ -74,11 +74,15 @@ class AnimatedButton:
                     self.action()
 
 class Game:
-    def __init__(self):
+    # Modified __init__ to accept an optional start_scene parameter.
+    def __init__(self, start_scene="start"):
         self.screen = screen
         self.clock = pygame.time.Clock()
         self.running = True
         self.font = pygame.font.SysFont("Arial", 24)
+
+        # Set the starting scene based on the parameter.
+        self.current_scene = start_scene
 
         # Preload chapter backgrounds.
         self.backgrounds = {
@@ -96,31 +100,19 @@ class Game:
         }
 
         # Game state and dialogues (script based on your story)
-        self.current_scene = "start"
         self.dialogues = {
             "start": [
                 "Venn: Hei, kom og ta en shot med oss!",
                 "Du: Jeg vet ikke, jeg skal tidlig opp i morgen.",
                 "Venn: Slapp av, én drink skader ikke! Vi skal jo bare ha det gøy."
             ],
-            "decision_drink": [
-                "Du drakk."
-            ],
-            "decision_no_drink": [
-                "Du valgte å ikke drikke."
-            ],
             "scene_2": [
                 "Du: Hva gjør du?",
                 "Vennen: Jeg skal hjem. Det går fint, jeg har kontroll.",
-                "Du: Er du sikker på at du burde kjøre? Kanskje det er bedre å vente litt eller få noen til å kjøre deg?",
+                "Du: Er du sikker? Kanskje det er bedre å vente litt eller få noen til å kjøre deg?",
                 "Vennen: Slapp av, jeg føler meg helt fin. Det er ingen problem.",
                 "Du: Det handler ikke bare om deg. Hva om noe skjer?",
                 "Vennen: Det skjer ikke noe, jeg har full kontroll. Slutt å bekymre deg."
-            ],
-            "decision_exit": [
-                "Stoppe de fra å gå ut?",
-                "A: Ja  (Kutter til info)",
-                "B: Nei (Gå videre til mer dialog, scenebytte)"
             ],
             "scene_3": [
                 "Du: Vent litt, kanskje vi heller kan bestille en taxi?",
@@ -128,26 +120,29 @@ class Game:
                 "Du: Men tenk om noe skjer? Det er ikke verdt risikoen.",
                 "Vennen: Jeg sier det går fint. Hvorfor lager du så mye drama?"
             ],
-            "decision_try_stop": [
-                "Prøve igjen å stoppe de fra å kjøre?",
-                "A: Ja  (Kutter til info)",
-                "B: Nei (Vennen starter bilen, dør lukkes, gå til neste scene.)"
-            ],
             "scene_4": [
                 "Vennen: Kom igjen, bare hopp inn, vi kommer oss kjapt hjem!",
                 "Du: Jeg vet ikke... Jeg føler meg ikke trygg.",
                 "Vennen: Slutt å overtenke, det går bra! Vil du hjem eller ikke?"
             ],
-            "decision_seat": [
-                "Sitte på eller ikke?",
-                "A: Nei  (Du står igjen. Bilen kjører av gårde. Hører et smell i det fjerne.)",
-                "B: Ja  (Du setter deg inn. Klipp til svart skjerm → Lyden av bremsing og krasj.)"
-            ],
             "ending_stop": [
-                "Du stoppet vennen din"
+                "Du stoppet vennen din."
             ],
             "ending_drive": [
                 "Vennen din kjørte under påvirkning..."
+            ],
+            # Wrong decision info dialogues:
+            "info_drink": [
+                "lorem: Drinking and driving is dangerous.",
+            ],
+            "info_exit_A": [
+                "lorem: Intervening that way may cause more harm.",
+            ],
+            "info_try_stop_A": [
+                "lorem: Forcing the issue isn’t safe.",
+            ],
+            "info_seat_B": [
+                "lorem: Getting in the car in that situation is risky.",
             ]
         }
         self.current_dialogue_full = self.dialogues[self.current_scene]
@@ -172,6 +167,9 @@ class Game:
         # Decision buttons (will be created when dialogue is finished)
         self.decision_buttons = {}
 
+        self.info_mode = False
+        self.info_text = ""
+        
     def reset_dialogue(self):
         # Now current_dialogue_full will be the list of lines for the current scene.
         self.current_dialogue_full = self.dialogues.get(self.current_scene, [])
@@ -224,16 +222,10 @@ class Game:
         # Create decision buttons based on the current scene.
         if self.current_scene == "start":
             self.decision_buttons = {
-                "drink": AnimatedButton("Drikk", self.left_x, self.button_y, self.button_width, self.button_height,
+                "drink": AnimatedButton("Ja", self.left_x, self.button_y, self.button_width, self.button_height,
                                           lambda: self.handle_decision("drink")),
-                "no_drink": AnimatedButton("Ikke drikk", self.right_x, self.button_y, self.button_width, self.button_height,
+                "no_drink": AnimatedButton("Nei", self.right_x, self.button_y, self.button_width, self.button_height,
                                            lambda: self.handle_decision("no_drink"))
-            }
-        elif self.current_scene in ["decision_drink", "decision_no_drink"]:
-            # Show a "Fortsett" button to move to scene_2.
-            self.decision_buttons = {
-                "continue": AnimatedButton("Fortsett", (1088 - self.button_width)//2, self.button_y, self.button_width, self.button_height,
-                                             lambda: self.handle_decision("continue_from_decision"))
             }
         elif self.current_scene == "scene_2":
             self.decision_buttons = {
@@ -259,23 +251,23 @@ class Game:
         # No decision buttons are created for ending scenes.
 
     def handle_decision(self, decision):
-        # Map the decision to the next scene in the story.
+        # Map decision keys to the next scene.
         if decision == "drink":
-            self.current_scene = "decision_drink"
+            self.current_scene = "info_drink"      # wrong decision; show info dialogue
         elif decision == "no_drink":
-            self.current_scene = "decision_no_drink"
-        elif decision == "continue_from_decision":
-            self.current_scene = "scene_2"
-        elif decision == "exit_decision_A" or decision == "exit_decision_B":
-            self.current_scene = "scene_3"
+            self.current_scene = "scene_2"          # correct decision
+        elif decision == "exit_decision_A":
+            self.current_scene = "info_exit_A"      # wrong choice
+        elif decision == "exit_decision_B":
+            self.current_scene = "scene_3"          # correct choice
         elif decision == "try_stop_A":
-            self.current_scene = "ending_stop"
+            self.current_scene = "info_try_stop_A"  # wrong choice
         elif decision == "try_stop_B":
-            self.current_scene = "scene_4"
+            self.current_scene = "scene_4"          # correct choice
         elif decision == "seat_A":
-            self.current_scene = "ending_stop"
+            self.current_scene = "ending_stop"      # correct ending
         elif decision == "seat_B":
-            self.current_scene = "ending_drive"
+            self.current_scene = "info_seat_B"        # wrong choice
         self.reset_dialogue()
 
     def draw_scene(self):
@@ -302,7 +294,6 @@ class Game:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.running = False
-                # Only let decision buttons handle events when dialogue is finished.
                 if self.dialogue_progress == "" and self.decision_buttons:
                     for btn in self.decision_buttons.values():
                         btn.handle_event(event)
@@ -313,5 +304,5 @@ class Game:
         sys.exit()
 
 if __name__ == "__main__":
-    game = Game()
+    game = Game()  # Defaults to "start" scene.
     game.run()

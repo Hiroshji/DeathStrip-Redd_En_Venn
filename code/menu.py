@@ -86,13 +86,11 @@ class AnimatedButton:
         self.action = action
         self.hovered = False
         self.pressed = False
-        self.press_offset = 5  # Pixels to move down when pressed
+        self.press_offset = 5
 
     def draw(self, screen):
-        # Draw scaled background image for the button
         scaled_img = pygame.transform.scale(button_box_img, (self.rect.width, self.rect.height))
         screen.blit(scaled_img, (self.rect.x, self.rect.y))
-        # Draw button text
         text_surf = font.render(self.text, True, WHITE)
         text_rect = text_surf.get_rect(center=self.rect.center)
         screen.blit(text_surf, text_rect)
@@ -147,61 +145,63 @@ def open_settings():
     import settings
     do_fade_transition(lambda: settings.settings_screen())
 
-def select_chapter():
-    # Load chapter-specific background
-    background_img = pygame.image.load("images/background_chapter.png").convert()
-    background_img = pygame.transform.scale(background_img, (SCREEN_WIDTH, SCREEN_HEIGHT))
-    
-    running_chapter = True
-    
-    def go_back():
-        nonlocal running_chapter
-        running_chapter = False
-        
-    back_button = AnimatedButton("Tilbake", 20, SCREEN_HEIGHT - 60, 150, 50, go_back)
-    
-    square_size = 150
-    spacing = 20
-    total_width = 4 * square_size + 3 * spacing
-    start_x = (SCREEN_WIDTH - total_width) // 2
-    y = SCREEN_HEIGHT // 2 - square_size // 2
-    chapters = [
-        pygame.Rect(start_x + i * (square_size + spacing), y, square_size, square_size)
-        for i in range(4)
+# New function: Select Scene (Chapter)
+def select_scene():
+    # Define available scenes.
+    scenes = [
+        ("start", "Kapittel 1"),
+        ("scene_2", "Kapittel 2"),
+        ("scene_3", "Kapittel 3"),
+        ("scene_4", "Kapittel 4")
     ]
-    
-    while running_chapter:
-        screen.blit(background_img, (0, 0))
-        for i, rect in enumerate(chapters):
-            pygame.draw.rect(screen, DARK_GRAY, rect)
-            pygame.draw.rect(screen, WHITE, rect, 2)
-            chapter_text = font.render(str(i + 1), True, WHITE)
-            text_rect = chapter_text.get_rect(center=rect.center)
-            screen.blit(chapter_text, text_rect)
-        back_button.draw(screen)
+    running_scene = True
+
+    # Create a button to go back to the main menu.
+    def go_back():
+        nonlocal running_scene
+        running_scene = False
+
+    back_button = AnimatedButton("Tilbake", 20, SCREEN_HEIGHT - 60, 150, 50, go_back)
+
+    buttons = []
+    btn_width = 200
+    btn_height = 70
+    gap = 20
+    total_width = len(scenes) * btn_width + (len(scenes) - 1) * gap
+    start_x = (SCREEN_WIDTH - total_width) // 2
+    y = SCREEN_HEIGHT // 2 - btn_height // 2
+    for i, (scene_key, label) in enumerate(scenes):
+        btn_x = start_x + i * (btn_width + gap)
+        # On click: start game with chosen scene.
+        def make_action(key=scene_key):
+            return lambda: do_fade_transition(lambda: __import__("game").Game(start_scene=key).run())
+        buttons.append(AnimatedButton(label, btn_x, y, btn_width, btn_height, make_action()))
+
+    while running_scene:
+        screen.blit(background_menu_img, (0, 0))
+        for btn in buttons:
+            btn.update()
+            btn.draw(screen)
         back_button.update()
+        back_button.draw(screen)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                running_chapter = False
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                for i, rect in enumerate(chapters):
-                    if rect.collidepoint(event.pos):
-                        print(f"Chapter {i + 1} clicked. (Functionality not implemented)")
-                back_button.handle_event(event)
-            elif event.type == pygame.MOUSEBUTTONUP:
+                running_scene = False
+            elif event.type in (pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP):
+                for btn in buttons:
+                    btn.handle_event(event)
                 back_button.handle_event(event)
         pygame.display.flip()
-    
-    do_fade_transition(lambda: run_menu())
+    do_fade_transition(run_menu)
 
-# Create animated buttons for main menu
+# Create main menu buttons.
 buttons = [
     AnimatedButton("Start Spill", 20, SCREEN_HEIGHT - 220, 250, 70, start_game),
-    # Wrap the Kapitel action in do_fade_transition:
-    AnimatedButton("Kapitel", 40, SCREEN_HEIGHT - 150, 250, 70, lambda: do_fade_transition(select_chapter)),
+    # Replace "Kapitel" button action with the new select_scene menu:
+    AnimatedButton("Kapittel", 40, SCREEN_HEIGHT - 150, 250, 70, lambda: do_fade_transition(select_scene)),
     AnimatedButton("Innstillinger", 60, SCREEN_HEIGHT - 80, 250, 70, open_settings)
 ]
 
