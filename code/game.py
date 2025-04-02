@@ -81,6 +81,22 @@ class Game:
         self.running = True
         self.font = pygame.font.SysFont("Arial", 24)
 
+        self.you_img = pygame.image.load("images/you.png").convert_alpha()
+        self.venn_img = pygame.image.load("images/venn.png").convert_alpha()
+
+        original_you = pygame.image.load("images/you.png").convert_alpha()
+        original_venn = pygame.image.load("images/venn.png").convert_alpha()
+        target_width = 300  # Change this value for a different size
+
+        you_width, you_height = original_you.get_size()
+        venn_width, venn_height = original_venn.get_size()
+        you_scale = target_width / you_width
+        venn_scale = target_width / venn_width
+
+        self.you_img = pygame.transform.scale(original_you, (target_width, int(you_height * you_scale)))
+        self.venn_img = pygame.transform.scale(original_venn, (target_width, int(venn_height * venn_scale)))
+
+
         # Set the starting scene based on the parameter.
         self.current_scene = start_scene
 
@@ -108,41 +124,41 @@ class Game:
             ],
             "scene_2": [
                 "Du: Hva gjør du?",
-                "Vennen: Jeg skal hjem. Det går fint, jeg har kontroll.",
+                "Venn: Jeg skal hjem. Det går fint, jeg har kontroll.",
                 "Du: Er du sikker? Kanskje det er bedre å vente litt eller få noen til å kjøre deg?",
-                "Vennen: Slapp av, jeg føler meg helt fin. Det er ingen problem.",
+                "Venn: Slapp av, jeg føler meg helt fin. Det er ingen problem.",
                 "Du: Det handler ikke bare om deg. Hva om noe skjer?",
-                "Vennen: Det skjer ikke noe, jeg har full kontroll. Slutt å bekymre deg."
+                "Venn: Det skjer ikke noe, jeg har full kontroll. Slutt å bekymre deg."
             ],
             "scene_3": [
                 "Du: Vent litt, kanskje vi heller kan bestille en taxi?",
-                "Vennen: Nei, nei, jeg er helt fin. Dette går bra.",
+                "Venn: Nei, nei, jeg er helt fin. Dette går bra.",
                 "Du: Men tenk om noe skjer? Det er ikke verdt risikoen.",
-                "Vennen: Jeg sier det går fint. Hvorfor lager du så mye drama?"
+                "Venn: Jeg sier det går fint. Hvorfor lager du så mye drama?"
             ],
             "scene_4": [
-                "Vennen: Kom igjen, bare hopp inn, vi kommer oss kjapt hjem!",
+                "Venn: Kom igjen, bare hopp inn, vi kommer oss kjapt hjem!",
                 "Du: Jeg vet ikke... Jeg føler meg ikke trygg.",
-                "Vennen: Slutt å overtenke, det går bra! Vil du hjem eller ikke?"
+                "Venn: Slutt å overtenke, det går bra! Vil du hjem eller ikke?"
             ],
             "ending_stop": [
                 "Du stoppet vennen din."
             ],
             "ending_drive": [
-                "Vennen din kjørte under påvirkning..."
+                "Venn din kjørte under påvirkning..."
             ],
             # Wrong decision info dialogues:
             "info_drink": [
-                "lorem: Drinking and driving is dangerous.",
+                "lorem: Drinking and driving is dangerous."
             ],
             "info_exit_A": [
-                "lorem: Intervening that way may cause more harm.",
+                "lorem: Intervening that way may cause more harm."
             ],
             "info_try_stop_A": [
-                "lorem: Forcing the issue isn’t safe.",
+                "lorem: Forcing the issue isn’t safe."
             ],
             "info_seat_B": [
-                "lorem: Getting in the car in that situation is risky.",
+                "lorem: Getting in the car in that situation is risky."
             ]
         }
         self.current_dialogue_full = self.dialogues[self.current_scene]
@@ -231,9 +247,44 @@ class Game:
         self.screen.blit(text_surface, (x, y))
 
     def draw_dialogue_box(self, dialogue):
+        # Define the dialogue box dimensions.
         box_rect = pygame.Rect(20, 612 - 100 - 20, 1088 - 40, 100)
         pygame.draw.rect(self.screen, (50, 50, 50), box_rect)
         pygame.draw.rect(self.screen, (255, 255, 255), box_rect, 2)
+        
+        # Determine speaker based on the current dialogue line.
+        if self.current_line_index < len(self.current_dialogue_full):
+            current_line = self.current_dialogue_full[self.current_line_index]
+            if current_line.startswith("Du:"):
+                # Position player's image so its bottom touches the top of the dialogue box.
+                y_pos = box_rect.top - self.you_img.get_height()
+                self.screen.blit(self.you_img, (150, y_pos))
+            elif current_line.startswith("Venn:"):
+                # Position friend's image so its bottom touches the top of the dialogue box.
+                y_pos = box_rect.top - self.venn_img.get_height()
+                self.screen.blit(self.venn_img, (1088 - self.venn_img.get_width() - 150, y_pos))
+        
+        self.draw_text(dialogue, box_rect.x + 10, box_rect.y + 10)
+
+    def draw_dialogue_box(self, dialogue):
+        # Define the dialogue box dimensions.
+        box_rect = pygame.Rect(20, 612 - 100 - 20, 1088 - 40, 100)
+        pygame.draw.rect(self.screen, (50, 50, 50), box_rect)
+        pygame.draw.rect(self.screen, (255, 255, 255), box_rect, 2)
+        
+        # Determine which speaker is active based on the current dialogue line.
+        if self.current_line_index < len(self.current_dialogue_full):
+            current_line = self.current_dialogue_full[self.current_line_index]
+            if current_line.startswith("Du:"):
+                # Position the player's image so its bottom touches the top of the dialogue box.
+                y_pos = box_rect.top - self.you_img.get_height()
+                self.screen.blit(self.you_img, (150, y_pos))
+            elif current_line.startswith("Venn:"):
+                # Position the friend's image so its bottom touches the top of the dialogue box.
+                y_pos = box_rect.top - self.venn_img.get_height()
+                self.screen.blit(self.venn_img, (1088 - self.venn_img.get_width() - 150, y_pos))
+        
+        # Draw the dialogue text inside the box.
         self.draw_text(dialogue, box_rect.x + 10, box_rect.y + 10)
 
     def create_decision_buttons(self):
