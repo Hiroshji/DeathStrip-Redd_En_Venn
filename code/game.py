@@ -81,9 +81,7 @@ class Game:
         self.running = True
         self.font = pygame.font.SysFont("Arial", 24)
 
-        self.you_img = pygame.image.load("images/you.png").convert_alpha()
-        self.venn_img = pygame.image.load("images/venn.png").convert_alpha()
-
+        # Load the original images for scene "start"
         original_you = pygame.image.load("images/you.png").convert_alpha()
         original_venn = pygame.image.load("images/venn.png").convert_alpha()
         target_width = 300  # Change this value for a different size
@@ -96,6 +94,28 @@ class Game:
         self.you_img = pygame.transform.scale(original_you, (target_width, int(you_height * you_scale)))
         self.venn_img = pygame.transform.scale(original_venn, (target_width, int(venn_height * venn_scale)))
 
+        # Load alternate images for scenes after "start"
+        alt_you1 = pygame.image.load("images/concerned_you1.png").convert_alpha()
+        alt_you2 = pygame.image.load("images/concerned_you2.png").convert_alpha()
+        concerned_you_scale = target_width / alt_you1.get_width()
+        self.concerned_you_imgs = [
+            pygame.transform.scale(alt_you1, (target_width, int(alt_you1.get_height() * concerned_you_scale))),
+            pygame.transform.scale(alt_you2, (target_width, int(alt_you2.get_height() * concerned_you_scale)))
+        ]
+
+        alt_venn1 = pygame.image.load("images/drunk_venn1.png").convert_alpha()
+        alt_venn2 = pygame.image.load("images/drunk_venn2.png").convert_alpha()
+        alt_venn3 = pygame.image.load("images/drunk_venn3.png").convert_alpha()
+        drunk_venn_scale = target_width / alt_venn1.get_width()
+        self.drunk_venn_imgs = [
+            pygame.transform.scale(alt_venn1, (target_width, int(alt_venn1.get_height() * drunk_venn_scale))),
+            pygame.transform.scale(alt_venn2, (target_width, int(alt_venn2.get_height() * drunk_venn_scale))),
+            pygame.transform.scale(alt_venn3, (target_width, int(alt_venn3.get_height() * drunk_venn_scale)))
+        ]
+
+        # Counters to cycle images when characters speak
+        self.du_img_index = 0
+        self.venn_img_index = 0
 
         # Set the starting scene based on the parameter.
         self.current_scene = start_scene
@@ -185,49 +205,62 @@ class Game:
 
         self.info_mode = False
         self.info_text = ""
-        
+        # Set a flag for alternate (cycling) images once we leave the "start" scene.
+        self.alternate = (self.current_scene != "start")
+
     def reset_dialogue(self):
         # Now current_dialogue_full will be the list of lines for the current scene.
         self.current_dialogue_full = self.dialogues.get(self.current_scene, [])
         self.current_line_index = 0         # Which dialogue line we're on.
         self.dialogue_progress = ""         # The current text being typewritten.
+        self.dialogue_index = 0
         self.dialogue_timer = 0             # Timer for typewriter effect.
         self.dialogue_finished = False      # True when the current line is fully displayed.
         self.post_dialogue_timer = 0        # Delay after finished before advancing.
         self.decision_buttons = {}          # Clear decision buttons.
+        self.alternate = (self.current_scene != "start")
+        # Reset image counters if needed.
+        self.du_img_index = 0
+        self.venn_img_index = 0
 
     def update_dialogue(self, dt):
-        # If there are still lines to show.
         if self.current_line_index < len(self.current_dialogue_full):
-            # If the current line is not finished, do the typewriter effect.
             if not self.dialogue_finished:
                 if self.dialogue_index < len(self.current_dialogue_full[self.current_line_index]):
                     self.dialogue_timer += dt
-                    if self.dialogue_timer >= 30:  # adjust speed here
+                    if self.dialogue_timer >= 30:  # adjust typewriter speed here
                         self.dialogue_progress += self.current_dialogue_full[self.current_line_index][self.dialogue_index]
                         self.dialogue_index += 1
                         self.dialogue_timer = 0
                 else:
+                    # Once the line is fully displayed, mark as finished and reset the post-dialogue timer.
                     self.dialogue_finished = True
                     self.post_dialogue_timer = 0
             else:
+                # Wait for the dialogue to remain on screen for at least 1 second.
                 self.post_dialogue_timer += dt
-                # If the current scene is one of the info (wrong decision) scenes,
-                # auto-transition after a brief delay.
                 if self.current_scene in {"info_drink", "info_exit_A", "info_try_stop_A", "info_seat_B"}:
+                    # Auto-transition for info scenes after the delay.
                     if self.post_dialogue_timer >= 1000:
                         self.auto_transition()
                 else:
-                    # For narrative/dialogue scenes that require continuation, allow space press or delay.
+                    # For narrative scenes, you may also allow a space press after 1 second.
                     keys = pygame.key.get_pressed()
-                    if keys[pygame.K_SPACE] or self.post_dialogue_timer >= 1000:
+                    if (keys[pygame.K_SPACE] and self.post_dialogue_timer >= 1000) or self.post_dialogue_timer >= 1000:
+                        # Cycle the speaker's image if alternate images are active.
+                        if self.alternate and self.current_line_index < len(self.current_dialogue_full):
+                            current_line = self.current_dialogue_full[self.current_line_index]
+                            if current_line.startswith("Du:"):
+                                self.du_img_index = (self.du_img_index + 1) % len(self.concerned_you_imgs)
+                            elif current_line.startswith("Venn:"):
+                                self.venn_img_index = (self.venn_img_index + 1) % len(self.drunk_venn_imgs)
                         self.current_line_index += 1
                         self.dialogue_progress = ""
                         self.dialogue_index = 0
                         self.dialogue_timer = 0
                         self.dialogue_finished = False
         else:
-            # All dialogue lines are done.
+            # All dialogue lines have been shown.
             self.dialogue_progress = ""
 
     def auto_transition(self):
@@ -252,39 +285,29 @@ class Game:
         pygame.draw.rect(self.screen, (50, 50, 50), box_rect)
         pygame.draw.rect(self.screen, (255, 255, 255), box_rect, 2)
         
-        # Determine speaker based on the current dialogue line.
-        if self.current_line_index < len(self.current_dialogue_full):
-            current_line = self.current_dialogue_full[self.current_line_index]
-            if current_line.startswith("Du:"):
-                # Position player's image so its bottom touches the top of the dialogue box.
-                y_pos = box_rect.top - self.you_img.get_height()
-                self.screen.blit(self.you_img, (150, y_pos))
-            elif current_line.startswith("Venn:"):
-                # Position friend's image so its bottom touches the top of the dialogue box.
-                y_pos = box_rect.top - self.venn_img.get_height()
-                self.screen.blit(self.venn_img, (1088 - self.venn_img.get_width() - 150, y_pos))
-        
-        self.draw_text(dialogue, box_rect.x + 10, box_rect.y + 10)
-
-    def draw_dialogue_box(self, dialogue):
-        # Define the dialogue box dimensions.
-        box_rect = pygame.Rect(20, 612 - 100 - 20, 1088 - 40, 100)
-        pygame.draw.rect(self.screen, (50, 50, 50), box_rect)
-        pygame.draw.rect(self.screen, (255, 255, 255), box_rect, 2)
-        
         # Determine which speaker is active based on the current dialogue line.
         if self.current_line_index < len(self.current_dialogue_full):
             current_line = self.current_dialogue_full[self.current_line_index]
-            if current_line.startswith("Du:"):
-                # Position the player's image so its bottom touches the top of the dialogue box.
-                y_pos = box_rect.top - self.you_img.get_height()
-                self.screen.blit(self.you_img, (150, y_pos))
-            elif current_line.startswith("Venn:"):
-                # Position the friend's image so its bottom touches the top of the dialogue box.
-                y_pos = box_rect.top - self.venn_img.get_height()
-                self.screen.blit(self.venn_img, (1088 - self.venn_img.get_width() - 150, y_pos))
+            if self.alternate:
+                # Use alternate images (cycling through 1 and 2)
+                if current_line.startswith("Du:"):
+                    img = self.concerned_you_imgs[self.du_img_index]
+                    y_pos = box_rect.top - img.get_height()
+                    self.screen.blit(img, (150, y_pos))
+                elif current_line.startswith("Venn:"):
+                    img = self.drunk_venn_imgs[self.venn_img_index]
+                    y_pos = box_rect.top - img.get_height()
+                    self.screen.blit(img, (1088 - img.get_width() - 150, y_pos))
+            else:
+                # Use original images for the "start" scene.
+                if current_line.startswith("Du:"):
+                    y_pos = box_rect.top - self.you_img.get_height()
+                    self.screen.blit(self.you_img, (150, y_pos))
+                elif current_line.startswith("Venn:"):
+                    y_pos = box_rect.top - self.venn_img.get_height()
+                    self.screen.blit(self.venn_img, (1088 - self.venn_img.get_width() - 150, y_pos))
         
-        # Draw the dialogue text inside the box.
+        # Draw the dialogue text inside the dialogue box.
         self.draw_text(dialogue, box_rect.x + 10, box_rect.y + 10)
 
     def create_decision_buttons(self):
