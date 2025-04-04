@@ -125,15 +125,19 @@ class Game:
             "start": pygame.transform.scale(pygame.image.load("images/chapter1.jpg").convert(), (1088, 612)),
             "decision_drink": pygame.transform.scale(pygame.image.load("images/chapter2.jpg").convert(), (1088, 612)),
             "decision_no_drink": pygame.transform.scale(pygame.image.load("images/chapter2.jpg").convert(), (1088, 612)),
-            "scene_2": pygame.transform.scale(pygame.image.load("images/chapter3.jpg").convert(), (1088, 612)),
-            "decision_exit": pygame.transform.scale(pygame.image.load("images/chapter3.jpg").convert(), (1088, 612)),
+            "scene_2": pygame.transform.scale(pygame.image.load("images/chapter3_start.jpg").convert(), (1088, 612)),
+            "decision_exit": pygame.transform.scale(pygame.image.load("images/chapter3_start.jpg").convert(), (1088, 612)),
             "scene_3": pygame.transform.scale(pygame.image.load("images/chapter4.jpg").convert(), (1088, 612)),
             "decision_try_stop": pygame.transform.scale(pygame.image.load("images/chapter4.jpg").convert(), (1088, 612)),
-            "scene_4": pygame.transform.scale(pygame.image.load("images/chapter5.jpg").convert(), (1088, 612)),
-            "decision_seat": pygame.transform.scale(pygame.image.load("images/chapter5.jpg").convert(), (1088, 612)),
+            "scene_4": pygame.transform.scale(pygame.image.load("images/chapter4.jpg").convert(), (1088, 612)),
+            "decision_seat": pygame.transform.scale(pygame.image.load("images/chapter4.jpg").convert(), (1088, 612)),
             "ending_stop": pygame.transform.scale(pygame.image.load("images/chapter5.jpg").convert(), (1088, 612)),
             "ending_drive": pygame.transform.scale(pygame.image.load("images/chapter5.jpg").convert(), (1088, 612))
         }
+
+        self.scene2_end_bg = pygame.transform.scale(
+            pygame.image.load("images/chapter3_end.jpg").convert(), (1088, 612)
+        )
 
         # Game state and dialogues (script based on your story)
         self.dialogues = {
@@ -169,16 +173,16 @@ class Game:
             ],
             # Wrong decision info dialogues:
             "info_drink": [
-                "Å drikke og kjøre er farlig."
+                "Rusepåivrket tilstand er en av hovedårsakene til at unge dør i trafikken."
             ],
             "info_exit_A": [
-                "Å gripe inn på den måten kan forårsake mer skade."
+                "1 pils og du er på grensa. 0,2 promille kan endre alt."
             ],
             "info_try_stop_A": [
-                "Å tvinge problemet er ikke trygt."
+                "1 av 4 dødsulykker i trafikken skyldes rus."
             ],
             "info_sete_B": [
-                "Å sette seg inn i bilen i den situasjonen er risikabelt."
+                "Det er ikke bare ditt liv du setter på spill. 1 av 3 som dør i trafikken er ikke sjåfør."
             ]
         }
         self.current_dialogue_full = self.dialogues[self.current_scene]
@@ -362,18 +366,28 @@ class Game:
     def draw_info_logo(self):
         # Draw a scaled-down logo in the center above the dialogue box for info screens.
         if self.logo_img:
-            small_logo = pygame.transform.scale(self.logo_img, (400, 400))  # Increased logo size.
-            # Position the logo centered horizontally and above the dialogue box
+            small_logo = pygame.transform.scale(self.logo_img, (400, 400))
+            # Position the logo centered horizontally and above the dialogue box.
             logo_rect = small_logo.get_rect(center=(1088 // 2, 612 // 2 - 80))
             self.screen.blit(small_logo, logo_rect)
 
     def draw_scene(self):
-        # Draw the background corresponding to the current scene.
-        bg = self.backgrounds.get(self.current_scene)
-        if bg:
-            self.screen.blit(bg, (0, 0))
+        # For ending scenes (after scene 4 with end credits), force chapter5.jpg as background.
+        if self.current_scene in {"ending_stop", "ending_drive"}:
+            bg = self.backgrounds.get("ending_stop")  # chapter5.jpg image
+            if bg:
+                self.screen.blit(bg, (0, 0))
+            else:
+                self.screen.fill((0, 0, 0))
+        # For scene_2, change background when the dialogue reaches or passes the specified line.
+        elif self.current_scene == "scene_2" and self.current_line_index >= 2:
+            self.screen.blit(self.scene2_end_bg, (0, 0))
         else:
-            self.screen.fill((0, 0, 0))
+            bg = self.backgrounds.get(self.current_scene)
+            if bg:
+                self.screen.blit(bg, (0, 0))
+            else:
+                self.screen.fill((0, 0, 0))
         
         # If in an info screen, draw the logo above the dialogue box.
         if self.current_scene.startswith("info_"):
@@ -388,8 +402,8 @@ class Game:
             for btn in self.decision_buttons.values():
                 btn.update()
                 btn.draw(self.screen)
-
-        # For ending scenes, fade to black and then show the logo with same size as info screens.
+        
+        # For ending scenes, fade to black and then display the logo.
         if self.current_scene in {"ending_stop", "ending_drive"} and self.current_line_index >= len(self.current_dialogue_full):
             self.ending_fade = min(255, self.ending_fade + self.clock.get_time() / 5)
             fade_surf = pygame.Surface((1088, 612))
@@ -397,9 +411,8 @@ class Game:
             fade_surf.set_alpha(self.ending_fade)
             self.screen.blit(fade_surf, (0, 0))
             if self.logo_img and self.ending_fade >= 255:
-                small_logo = pygame.transform.scale(self.logo_img, (200, 200))
-                logo_rect = small_logo.get_rect(center=(1088 // 2, 612 // 2))
-                self.screen.blit(small_logo, logo_rect)
+                # Use the same draw_info_logo method to display the logo with the same size and style as in info screens.
+                self.draw_info_logo()
 
     def run(self):
         while self.running:
