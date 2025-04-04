@@ -169,16 +169,16 @@ class Game:
             ],
             # Wrong decision info dialogues:
             "info_drink": [
-                "lorem: Drinking and driving is dangerous."
+                "Å drikke og kjøre er farlig."
             ],
             "info_exit_A": [
-                "lorem: Intervening that way may cause more harm."
+                "Å gripe inn på den måten kan forårsake mer skade."
             ],
             "info_try_stop_A": [
-                "lorem: Forcing the issue isn’t safe."
+                "Å tvinge problemet er ikke trygt."
             ],
-            "info_seat_B": [
-                "lorem: Getting in the car in that situation is risky."
+            "info_sete_B": [
+                "Å sette seg inn i bilen i den situasjonen er risikabelt."
             ]
         }
         self.current_dialogue_full = self.dialogues[self.current_scene]
@@ -207,6 +207,14 @@ class Game:
         self.info_text = ""
         # Set a flag for alternate (cycling) images once we leave the "start" scene.
         self.alternate = (self.current_scene != "start")
+
+        # NEW: initialize fade parameters for ending and load logo image.
+        self.ending_fade = 0
+        try:
+            self.logo_img = pygame.image.load("images/logo.png").convert_alpha()
+        except Exception as e:
+            print("Error loading logo image:", e)
+            self.logo_img = None
 
     def reset_dialogue(self):
         # Now current_dialogue_full will be the list of lines for the current scene.
@@ -244,7 +252,6 @@ class Game:
                     if self.post_dialogue_timer >= 1000:
                         self.auto_transition()
                 else:
-                    # For narrative scenes, you may also allow a space press after 1 second.
                     keys = pygame.key.get_pressed()
                     if (keys[pygame.K_SPACE] and self.post_dialogue_timer >= 1000) or self.post_dialogue_timer >= 1000:
                         # Cycle the speaker's image if alternate images are active.
@@ -314,44 +321,44 @@ class Game:
         # Create decision buttons based on the current scene.
         if self.current_scene == "start":
             self.decision_buttons = {
-                "drink": AnimatedButton("Ja", self.left_x, self.button_y, self.button_width, self.button_height,
-                                          lambda: self.handle_decision("drink")),
-                "no_drink": AnimatedButton("Nei", self.right_x, self.button_y, self.button_width, self.button_height,
-                                           lambda: self.handle_decision("no_drink"))
+                "Drikke": AnimatedButton("Dikke", self.left_x, self.button_y, self.button_width, self.button_height,
+                                        lambda: self.handle_decision("drink")),
+                "Ikke Drikke": AnimatedButton("Ikke Drikke", self.right_x, self.button_y, self.button_width, self.button_height,
+                                        lambda: self.handle_decision("no_drink"))
             }
         elif self.current_scene == "scene_2":
             self.decision_buttons = {
-                "exit_A": AnimatedButton("A: Ja", self.left_x, self.button_y, self.button_width, self.button_height,
-                                          lambda: self.handle_decision("exit_decision_A")),
-                "exit_B": AnimatedButton("B: Nei", self.right_x, self.button_y, self.button_width, self.button_height,
-                                          lambda: self.handle_decision("exit_decision_B"))
+                "Ikke gå": AnimatedButton("Ikke gå", self.left_x, self.button_y, self.button_width, self.button_height,
+                                        lambda: self.handle_decision("exit_decision_A")),
+                "Gå med": AnimatedButton("Gå med", self.right_x, self.button_y, self.button_width, self.button_height,
+                                        lambda: self.handle_decision("exit_decision_B"))
             }
         elif self.current_scene == "scene_3":
             self.decision_buttons = {
-                "try_A": AnimatedButton("A: Ja", self.left_x, self.button_y, self.button_width, self.button_height,
-                                          lambda: self.handle_decision("try_stop_A")),
-                "try_B": AnimatedButton("B: Nei", self.right_x, self.button_y, self.button_width, self.button_height,
-                                          lambda: self.handle_decision("try_stop_B"))
+                "Stoppe": AnimatedButton("Stoppe", self.left_x, self.button_y, self.button_width, self.button_height,
+                                        lambda: self.handle_decision("try_stop_A")),
+                "Ikke Stoppe": AnimatedButton("Ikke Stoppe", self.right_x, self.button_y, self.button_width, self.button_height,
+                                        lambda: self.handle_decision("try_stop_B"))
             }
         elif self.current_scene == "scene_4":
             self.decision_buttons = {
-                "seat_A": AnimatedButton("A: Nei", self.left_x, self.button_y, self.button_width, self.button_height,
-                                          lambda: self.handle_decision("seat_A")),
-                "seat_B": AnimatedButton("B: Ja", self.right_x, self.button_y, self.button_width, self.button_height,
-                                          lambda: self.handle_decision("seat_B"))
+                "seat_A": AnimatedButton("ikke Sitte", self.left_x, self.button_y, self.button_width, self.button_height,
+                                        lambda: self.handle_decision("seat_A")),
+                "seat_B": AnimatedButton("Sitte", self.right_x, self.button_y, self.button_width, self.button_height,
+                                        lambda: self.handle_decision("seat_B"))
             }
         # No decision buttons are created for ending scenes.
 
     def handle_decision(self, decision):
         # Map decision keys to the next scene.
         if decision == "drink":
-            self.current_scene = "info_drink"      # wrong decision; show info dialogue
+            self.current_scene = "scene_2"      # wrong decision; show info dialogue
         elif decision == "no_drink":
-            self.current_scene = "scene_2"          # correct decision
+            self.current_scene = "info_drink"     # correct decision
         elif decision == "exit_decision_A":
-            self.current_scene = "info_exit_A"      # wrong choice
+            self.current_scene = "info_exit_A"    # wrong choice
         elif decision == "exit_decision_B":
-            self.current_scene = "scene_3"          # correct choice
+            self.current_scene = "scene_3"        # correct choice
         elif decision == "try_stop_A":
             self.current_scene = "info_try_stop_A"  # wrong choice
         elif decision == "try_stop_B":
@@ -379,6 +386,17 @@ class Game:
             for btn in self.decision_buttons.values():
                 btn.update()
                 btn.draw(self.screen)
+
+        # NEW: If in an ending scene with dialogue finished, fade to black and show logo.
+        if self.current_scene in {"ending_stop", "ending_drive"} and self.current_line_index >= len(self.current_dialogue_full):
+            self.ending_fade = min(255, self.ending_fade + self.clock.get_time() / 5)
+            fade_surf = pygame.Surface((1088, 612))
+            fade_surf.fill((0, 0, 0))
+            fade_surf.set_alpha(self.ending_fade)
+            self.screen.blit(fade_surf, (0, 0))
+            if self.logo_img and self.ending_fade >= 255:
+                logo_rect = self.logo_img.get_rect(center=(1088 // 2, 612 // 2))
+                self.screen.blit(self.logo_img, logo_rect)
 
     def run(self):
         while self.running:
