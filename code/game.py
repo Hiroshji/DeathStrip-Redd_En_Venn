@@ -310,7 +310,7 @@ class Game:
         # Create decision buttons based on the current scene.
         if self.current_scene == "start":
             self.decision_buttons = {
-                "Drikke": AnimatedButton("Dikke", self.left_x, self.button_y, self.button_width, self.button_height,
+                "Drikke": AnimatedButton("Drikke", self.left_x, self.button_y, self.button_width, self.button_height,
                                           lambda: self.handle_decision("drink")),
                 "Ikke Drikke": AnimatedButton("Ikke Drikke", self.right_x, self.button_y, self.button_width, self.button_height,
                                                lambda: self.handle_decision("no_drink"))
