@@ -150,7 +150,7 @@ class Game:
                 "Du: Hva gjør du?",
                 "Venn: Jeg skal hjem. Det går fint, jeg har kontroll.",
                 "Du: Er du sikker? Kanskje det er bedre å vente litt eller få noen til å kjøre deg?",
-                "Venn: Slapp av, jeg føler meg helt fin. Det er ingen problem.",
+                "Venn: Slapp av, jeg føler meg helt fin. Det er ikke noe problem.",
                 "Du: Det handler ikke bare om deg. Hva om noe skjer?",
                 "Venn: Det skjer ikke noe, jeg har full kontroll. Slutt å bekymre deg."
             ],
@@ -169,11 +169,12 @@ class Game:
                 "Du stoppet vennen din."
             ],
             "ending_drive": [
-                "Venn din kjørte under påvirkning..."
+                "Vennen din kjørte under påvirkning ..."
+
             ],
             # Wrong decision info dialogues:
             "info_drink": [
-                "Rusepåivrket tilstand er en av hovedårsakene til at unge dør i trafikken."
+                "Ruspåvirket tilstand er en av hovedårsakene til at unge dør i trafikken."
             ],
             "info_exit_A": [
                 "1 pils og du er på grensa. 0,2 promille kan endre alt."
