@@ -81,6 +81,14 @@ class Game:
         self.running = True
         self.font = pygame.font.SysFont("Arial", 24)
 
+        # Music settings
+        self.config_volume = read_config()
+        self.music_on = True
+        self.current_music = None  # To track which music is loaded
+
+        # Create a persistent Music toggle button (positioned at top-left)
+        self.music_button = AnimatedButton("Music: On", 20, 20, 120, 40, self.toggle_music)
+
         # Load the original images for scene "start"
         original_you = pygame.image.load("images/you.png").convert_alpha()
         original_venn = pygame.image.load("images/venn.png").convert_alpha()
@@ -170,7 +178,6 @@ class Game:
             ],
             "ending_drive": [
                 "Vennen din kjørte under påvirkning ..."
-
             ],
             # Wrong decision info dialogues:
             "info_drink": [
@@ -221,18 +228,24 @@ class Game:
             print("Error loading logo image:", e)
             self.logo_img = None
 
+    def toggle_music(self):
+        self.music_on = not self.music_on
+        self.music_button.text = "Music: On" if self.music_on else "Music: Off"
+        if self.music_on:
+            pygame.mixer.music.unpause()
+        else:
+            pygame.mixer.music.pause()
+
     def reset_dialogue(self):
-        # Now current_dialogue_full will be the list of lines for the current scene.
         self.current_dialogue_full = self.dialogues.get(self.current_scene, [])
-        self.current_line_index = 0         # Which dialogue line we're on.
-        self.dialogue_progress = ""         # The current text being typewritten.
+        self.current_line_index = 0
+        self.dialogue_progress = ""
         self.dialogue_index = 0
-        self.dialogue_timer = 0             # Timer for typewriter effect.
-        self.dialogue_finished = False      # True when the current line is fully displayed.
-        self.post_dialogue_timer = 0        # (No longer used)
-        self.decision_buttons = {}          # Clear decision buttons.
+        self.dialogue_timer = 0
+        self.dialogue_finished = False
+        self.post_dialogue_timer = 0
+        self.decision_buttons = {}
         self.alternate = (self.current_scene != "start")
-        # Reset image counters if needed.
         self.du_img_index = 0
         self.venn_img_index = 0
 
@@ -241,19 +254,16 @@ class Game:
             if not self.dialogue_finished:
                 if self.dialogue_index < len(self.current_dialogue_full[self.current_line_index]):
                     self.dialogue_timer += dt
-                    if self.dialogue_timer >= 30:  # adjust typewriter speed here
+                    if self.dialogue_timer >= 30:
                         self.dialogue_progress += self.current_dialogue_full[self.current_line_index][self.dialogue_index]
                         self.dialogue_index += 1
                         self.dialogue_timer = 0
                 else:
-                    # Once the line is fully displayed, mark as finished.
                     self.dialogue_finished = True
         else:
-            # All dialogue lines have been shown.
             self.dialogue_progress = ""
 
     def advance_dialogue(self):
-        # Advance the dialogue when fully displayed and a click is detected.
         if self.dialogue_finished:
             if self.current_line_index < len(self.current_dialogue_full):
                 if self.alternate:
@@ -268,7 +278,6 @@ class Game:
                 self.dialogue_timer = 0
                 self.dialogue_finished = False
 
-            # If we've finished an info (wrong decision) dialogue, automatically transition.
             if self.current_line_index >= len(self.current_dialogue_full) and self.current_scene.startswith("info_"):
                 self.info_transition()
 
@@ -277,16 +286,13 @@ class Game:
         self.screen.blit(text_surface, (x, y))
 
     def draw_dialogue_box(self, dialogue):
-        # Define the dialogue box dimensions.
         box_rect = pygame.Rect(20, 612 - 100 - 20, 1088 - 40, 100)
         pygame.draw.rect(self.screen, (50, 50, 50), box_rect)
         pygame.draw.rect(self.screen, (255, 255, 255), box_rect, 2)
         
-        # Determine which speaker is active based on the current dialogue line.
         if self.current_line_index < len(self.current_dialogue_full):
             current_line = self.current_dialogue_full[self.current_line_index]
             if self.alternate:
-                # Use alternate images (cycling through 1 and 2)
                 if current_line.startswith("Du:"):
                     img = self.concerned_you_imgs[self.du_img_index]
                     y_pos = box_rect.top - img.get_height()
@@ -296,7 +302,6 @@ class Game:
                     y_pos = box_rect.top - img.get_height()
                     self.screen.blit(img, (1088 - img.get_width() - 150, y_pos))
             else:
-                # Use original images for the "start" scene.
                 if current_line.startswith("Du:"):
                     y_pos = box_rect.top - self.you_img.get_height()
                     self.screen.blit(self.you_img, (150, y_pos))
@@ -304,11 +309,9 @@ class Game:
                     y_pos = box_rect.top - self.venn_img.get_height()
                     self.screen.blit(self.venn_img, (1088 - self.venn_img.get_width() - 150, y_pos))
         
-        # Draw the dialogue text inside the dialogue box.
         self.draw_text(dialogue, box_rect.x + 10, box_rect.y + 10)
 
     def create_decision_buttons(self):
-        # Create decision buttons based on the current scene.
         if self.current_scene == "start":
             self.decision_buttons = {
                 "Drikke": AnimatedButton("Drikke", self.left_x, self.button_y, self.button_width, self.button_height,
@@ -337,50 +340,43 @@ class Game:
                 "seat_B": AnimatedButton("Sitte", self.right_x, self.button_y, self.button_width, self.button_height,
                                          lambda: self.handle_decision("seat_B"))
             }
-        # No decision buttons are created for ending scenes.
 
     def handle_decision(self, decision):
-        # Map decision keys to the next scene.
         if decision == "drink":
-            self.current_scene = "scene_2"       # wrong decision → info dialogue
+            self.current_scene = "scene_2"
         elif decision == "no_drink":
-            self.current_scene = "info_drink"           # correct decision
+            self.current_scene = "info_drink"
         elif decision == "exit_decision_A":
-            self.current_scene = "info_exit_A"       # wrong decision → info dialogue
+            self.current_scene = "info_exit_A"
         elif decision == "exit_decision_B":
-            self.current_scene = "scene_3"           # correct decision
+            self.current_scene = "scene_3"
         elif decision == "try_stop_A":
-            self.current_scene = "info_try_stop_A"   # wrong decision → info dialogue
+            self.current_scene = "info_try_stop_A"
         elif decision == "try_stop_B":
-            self.current_scene = "scene_4"           # correct decision
+            self.current_scene = "scene_4"
         elif decision == "seat_A":
-            self.current_scene = "ending_stop"       # correct ending
+            self.current_scene = "ending_stop"
         elif decision == "seat_B":
-            self.current_scene = "info_sete_B"        # wrong decision → info dialogue
+            self.current_scene = "info_sete_B"
         self.reset_dialogue()
 
     def info_transition(self):
-        # After an info dialogue finishes, automatically reset to the start scene.
         self.current_scene = "start"
         self.reset_dialogue()
 
     def draw_info_logo(self):
-        # Draw a scaled-down logo in the center above the dialogue box for info screens.
         if self.logo_img:
             small_logo = pygame.transform.scale(self.logo_img, (400, 400))
-            # Position the logo centered horizontally and above the dialogue box.
             logo_rect = small_logo.get_rect(center=(1088 // 2, 612 // 2 - 80))
             self.screen.blit(small_logo, logo_rect)
 
     def draw_scene(self):
-        # For ending scenes (after scene 4 with end credits), force chapter5.jpg as background.
         if self.current_scene in {"ending_stop", "ending_drive"}:
-            bg = self.backgrounds.get("ending_stop")  # chapter5.jpg image
+            bg = self.backgrounds.get("ending_stop")
             if bg:
                 self.screen.blit(bg, (0, 0))
             else:
                 self.screen.fill((0, 0, 0))
-        # For scene_2, change background when the dialogue reaches or passes the specified line.
         elif self.current_scene == "scene_2" and self.current_line_index >= 2:
             self.screen.blit(self.scene2_end_bg, (0, 0))
         else:
@@ -390,11 +386,9 @@ class Game:
             else:
                 self.screen.fill((0, 0, 0))
         
-        # If in an info screen, draw the logo above the dialogue box.
         if self.current_scene.startswith("info_"):
             self.draw_info_logo()
         
-        # Draw dialogue or decision buttons.
         if self.current_line_index < len(self.current_dialogue_full):
             self.draw_dialogue_box(self.dialogue_progress)
         else:
@@ -404,7 +398,6 @@ class Game:
                 btn.update()
                 btn.draw(self.screen)
         
-        # For ending scenes, fade to black and then display the logo.
         if self.current_scene in {"ending_stop", "ending_drive"} and self.current_line_index >= len(self.current_dialogue_full):
             self.ending_fade = min(255, self.ending_fade + self.clock.get_time() / 5)
             fade_surf = pygame.Surface((1088, 612))
@@ -412,29 +405,46 @@ class Game:
             fade_surf.set_alpha(self.ending_fade)
             self.screen.blit(fade_surf, (0, 0))
             if self.logo_img and self.ending_fade >= 255:
-                # Use the same draw_info_logo method to display the logo with the same size and style as in info screens.
                 self.draw_info_logo()
 
-    def run(self):
-        while self.running:
-            dt = self.clock.tick(60)
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    self.running = False
-                # If decision buttons exist, let them handle events.
-                if self.decision_buttons:
-                    for btn in self.decision_buttons.values():
-                        btn.handle_event(event)
-                else:
-                    # When no decision buttons, wait for a mouse click to advance dialogue.
-                    if event.type == pygame.MOUSEBUTTONDOWN:
-                        if self.dialogue_finished:
-                            self.advance_dialogue()
-            self.update_dialogue(dt)
-            self.draw_scene()
-            pygame.display.flip()
-        pygame.quit()
-        sys.exit()
+        # Update and draw the persistent Music button
+        self.music_button.update()
+        self.music_button.draw(self.screen)
+
+def run(self):
+    # Import the function to read the music volume from settings
+    from settings import read_music_config
+    while self.running:
+        dt = self.clock.tick(60)
+        # Check and update music track based on the current scene.
+        desired_track = os.path.join("sound", "scene1.wav") if self.current_scene == "start" else os.path.join("sound", "scene2+.wav")
+        if self.current_music != desired_track:
+            self.current_music = desired_track
+            pygame.mixer.music.load(self.current_music)
+            pygame.mixer.music.play(-1)
+        # Read the music volume from music_config.txt and set the mixer volume.
+        music_volume = read_music_config()
+        pygame.mixer.music.set_volume(min(music_volume / 5.0, 1.0))
+        if not self.music_on:
+            pygame.mixer.music.pause()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                self.running = False
+            # Always allow the Music button to handle events.
+            self.music_button.handle_event(event)
+            if self.decision_buttons:
+                for btn in self.decision_buttons.values():
+                    btn.handle_event(event)
+            else:
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if self.dialogue_finished:
+                        self.advance_dialogue()
+        self.update_dialogue(dt)
+        self.draw_scene()
+        pygame.display.flip()
+    pygame.quit()
+    sys.exit()
 
 if __name__ == "__main__":
     game = Game()  # Defaults to "start" scene.

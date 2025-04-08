@@ -39,6 +39,27 @@ def update_config(new_value):
     with open(config_path, "w") as f:
         f.write("volume=" + str(new_value))
 
+# --- Music config file functions ---
+def read_music_config():
+    config_path = "music_config.txt"
+    if os.path.exists(config_path):
+        with open(config_path, "r") as f:
+            line = f.readline().strip()
+            try:
+                mvol = float(line.split("=")[1])
+            except Exception as e:
+                mvol = 1.0
+            return mvol
+    else:
+        with open(config_path, "w") as f:
+            f.write("music_volume=1.0")
+        return 1.0
+
+def update_music_config(new_value):
+    config_path = "music_config.txt"
+    with open(config_path, "w") as f:
+        f.write("music_volume=" + str(new_value))
+
 # Load the button click sound from the "sound" folder using try/except
 try:
     button_click_sound = pygame.mixer.Sound("sound/button_click.wav")  # Adjust file name/extension if necessary.
@@ -85,10 +106,9 @@ class AnimatedButton:
                 if self.rect.collidepoint(event.pos):
                     self.action()
 
-# Simple horizontal slider to control the button click sound volume
-# Slider range is 0.0 to 5.0 even though effective volume is scaled to 0.0–1.0.
+# Modify the Slider class so it can update either click sound or music volume.
 class Slider:
-    def __init__(self, x, y, width, height, min_val=0.0, max_val=5.0, initial=1.0):
+    def __init__(self, x, y, width, height, min_val=0.0, max_val=5.0, initial=1.0, slider_type='click'):
         self.rect = pygame.Rect(x, y, width, height)
         self.min_val = min_val
         self.max_val = max_val
@@ -96,11 +116,12 @@ class Slider:
         self.handle_radius = height // 2
         self.handle_x = x + int((self.value - self.min_val) / (self.max_val - self.min_val) * width)
         self.dragging = False
+        self.slider_type = slider_type  # 'click' or 'music'
 
     def draw(self, surface):
-        # Draw slider track
+        # Draw slider track.
         pygame.draw.rect(surface, WHITE, self.rect, 2)
-        # Draw the handle
+        # Draw the handle.
         handle_center = (self.handle_x, self.rect.centery)
         pygame.draw.circle(surface, DARK_GRAY, handle_center, self.handle_radius)
 
@@ -117,66 +138,70 @@ class Slider:
         elif event.type == pygame.MOUSEBUTTONUP:
             self.dragging = False
         elif event.type == pygame.MOUSEMOTION and self.dragging:
+            # Move the handle within the slider bounds.
             self.handle_x = max(self.rect.x, min(event.pos[0], self.rect.x + self.rect.width))
             ratio = (self.handle_x - self.rect.x) / self.rect.width
             self.value = self.min_val + ratio * (self.max_val - self.min_val)
-            # Scale the slider value to effective volume (0.0–1.0); update sound volume
-            if button_click_sound:
-                button_click_sound.set_volume(min(self.value / self.max_val, 1.0))
-            # Update the config file with the new slider value
-            update_config(self.value)
+            if self.slider_type == 'click':
+                if button_click_sound:
+                    button_click_sound.set_volume(min(self.value / self.max_val, 1.0))
+                update_config(self.value)
+            elif self.slider_type == 'music':
+                pygame.mixer.music.set_volume(min(self.value / self.max_val, 1.0))
+                update_music_config(self.value)
 
 def settings_screen():
     clock = pygame.time.Clock()
     running = True
 
-    # Read volume from config file and use that as the slider's initial value.
-    initial_volume = read_config()
-    
-    # Use the same background as the chapters screen.
+    # Read volumes from config files.
+    initial_click = read_config()
+    initial_music = read_music_config()
+
     background_img = pygame.image.load("images/background_chapter.png").convert()
     background_img = pygame.transform.scale(background_img, (SCREEN_WIDTH, SCREEN_HEIGHT))
 
     # Create UI elements.
     sample_button = AnimatedButton("Test Button", 100, 100, 200, 50,
                                    lambda: print("Button action executed"))
-    slider = Slider(100, 200, 300, 20, min_val=0.0, max_val=5.0, initial=initial_volume)
+    # Click Sound Slider
+    click_slider = Slider(100, 200, 300, 20, min_val=0.0, max_val=5.0, initial=initial_click, slider_type='click')
+    # Music Volume Slider (separate)
+    music_slider = Slider(100, 300, 300, 20, min_val=0.0, max_val=5.0, initial=initial_music, slider_type='music')
     
-    # Define a callback that triggers the fade transition and then goes to the menu.
     def return_to_menu():
         do_fade_transition(lambda: run_menu())
         nonlocal running
         running = False
 
-    # Create the "Tilbake" (Return) button.
     return_button = AnimatedButton("Tilbake", 20, SCREEN_HEIGHT - 60, 150, 50, return_to_menu)
 
-    # Main loop.
     while running:
-        dt = clock.tick(60)
+        clock.tick(60)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
             sample_button.handle_event(event)
-            slider.update(event)
+            click_slider.update(event)
+            music_slider.update(event)
             return_button.handle_event(event)
 
         sample_button.update()
         return_button.update()
 
-        # Blit the chapter background.
         screen.blit(background_img, (0, 0))
         sample_button.draw(screen)
-        slider.draw(screen)
+        click_slider.draw(screen)
+        music_slider.draw(screen)
         return_button.draw(screen)
 
-        # Display the current volume level.
-        volume_text = font.render(f"Volume: {slider.value:.2f}", True, WHITE)
-        screen.blit(volume_text, (100, 240))
+        click_text = font.render(f"Click Volume: {click_slider.value:.2f}", True, WHITE)
+        music_text = font.render(f"Music Volume: {music_slider.value:.2f}", True, WHITE)
+        screen.blit(click_text, (100, 230))
+        screen.blit(music_text, (100, 280))
 
         pygame.display.flip()
 
-    # After the loop ends, transition back to the menu.
     import menu
     menu.run_menu()
 
