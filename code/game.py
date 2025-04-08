@@ -1,11 +1,16 @@
+import sys, os
 import pygame
-import sys
-import os
+
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(base_path, relative_path)
 
 pygame.init()
 
 # Set video mode
-screen = pygame.display.set_mode((1088, 612))
+SCREEN_WIDTH, SCREEN_HEIGHT = 1088, 612
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption("Deathtrip - Game")
 
 # --- Config file functions ---
@@ -25,11 +30,11 @@ def read_config():
         return 1.0
 
 # Load assets
-button_box_img = pygame.image.load("images/button_box.png").convert_alpha()
+button_box_img = pygame.image.load(resource_path("images/button_box.png")).convert_alpha()
 try:
-    button_click_sound = pygame.mixer.Sound(os.path.join("sound", "button_click.wav"))
+    button_click_sound = pygame.mixer.Sound(resource_path(os.path.join("sound", "button_click.wav")))
     config_volume = read_config()
-    button_click_sound.set_volume(min(config_volume / 5.0, 1.0))
+    button_click_sound.set_volume(min(config_volume/5.0, 1.0))
 except Exception as e:
     print("Error loading sound:", e)
     button_click_sound = None
@@ -80,73 +85,68 @@ class Game:
         self.clock = pygame.time.Clock()
         self.running = True
         self.font = pygame.font.SysFont("Arial", 24)
-
+        
         # Music settings
         self.config_volume = read_config()
         self.music_on = True
         self.current_music = None  # To track which music is loaded
-
+        
         # Create a persistent Music toggle button (positioned at top-left)
         self.music_button = AnimatedButton("Music: On", 20, 20, 120, 40, self.toggle_music)
-
+        
         # Load the original images for scene "start"
-        original_you = pygame.image.load("images/you.png").convert_alpha()
-        original_venn = pygame.image.load("images/venn.png").convert_alpha()
+        original_you = pygame.image.load(resource_path("images/you.png")).convert_alpha()
+        original_venn = pygame.image.load(resource_path("images/venn.png")).convert_alpha()
         target_width = 300  # Change this value for a different size
-
         you_width, you_height = original_you.get_size()
         venn_width, venn_height = original_venn.get_size()
         you_scale = target_width / you_width
         venn_scale = target_width / venn_width
-
         self.you_img = pygame.transform.scale(original_you, (target_width, int(you_height * you_scale)))
         self.venn_img = pygame.transform.scale(original_venn, (target_width, int(venn_height * venn_scale)))
-
+        
         # Load alternate images for scenes after "start"
-        alt_you1 = pygame.image.load("images/concerned_you1.png").convert_alpha()
-        alt_you2 = pygame.image.load("images/concerned_you2.png").convert_alpha()
+        alt_you1 = pygame.image.load(resource_path("images/concerned_you1.png")).convert_alpha()
+        alt_you2 = pygame.image.load(resource_path("images/concerned_you2.png")).convert_alpha()
         concerned_you_scale = target_width / alt_you1.get_width()
         self.concerned_you_imgs = [
             pygame.transform.scale(alt_you1, (target_width, int(alt_you1.get_height() * concerned_you_scale))),
             pygame.transform.scale(alt_you2, (target_width, int(alt_you2.get_height() * concerned_you_scale)))
         ]
-
-        alt_venn1 = pygame.image.load("images/drunk_venn1.png").convert_alpha()
-        alt_venn2 = pygame.image.load("images/drunk_venn2.png").convert_alpha()
-        alt_venn3 = pygame.image.load("images/drunk_venn3.png").convert_alpha()
+        
+        alt_venn1 = pygame.image.load(resource_path("images/drunk_venn1.png")).convert_alpha()
+        alt_venn2 = pygame.image.load(resource_path("images/drunk_venn2.png")).convert_alpha()
+        alt_venn3 = pygame.image.load(resource_path("images/drunk_venn3.png")).convert_alpha()
         drunk_venn_scale = target_width / alt_venn1.get_width()
         self.drunk_venn_imgs = [
             pygame.transform.scale(alt_venn1, (target_width, int(alt_venn1.get_height() * drunk_venn_scale))),
             pygame.transform.scale(alt_venn2, (target_width, int(alt_venn2.get_height() * drunk_venn_scale))),
             pygame.transform.scale(alt_venn3, (target_width, int(alt_venn3.get_height() * drunk_venn_scale)))
         ]
-
+        
         # Counters to cycle images when characters speak
         self.du_img_index = 0
         self.venn_img_index = 0
-
+        
         # Set the starting scene based on the parameter.
         self.current_scene = start_scene
-
-        # Preload chapter backgrounds.
+        
+        # Preload chapter backgrounds (using resource_path for all images)
         self.backgrounds = {
-            "start": pygame.transform.scale(pygame.image.load("images/chapter1.jpg").convert(), (1088, 612)),
-            "decision_drink": pygame.transform.scale(pygame.image.load("images/chapter2.jpg").convert(), (1088, 612)),
-            "decision_no_drink": pygame.transform.scale(pygame.image.load("images/chapter2.jpg").convert(), (1088, 612)),
-            "scene_2": pygame.transform.scale(pygame.image.load("images/chapter3_start.jpg").convert(), (1088, 612)),
-            "decision_exit": pygame.transform.scale(pygame.image.load("images/chapter3_start.jpg").convert(), (1088, 612)),
-            "scene_3": pygame.transform.scale(pygame.image.load("images/chapter4.jpg").convert(), (1088, 612)),
-            "decision_try_stop": pygame.transform.scale(pygame.image.load("images/chapter4.jpg").convert(), (1088, 612)),
-            "scene_4": pygame.transform.scale(pygame.image.load("images/chapter4.jpg").convert(), (1088, 612)),
-            "decision_seat": pygame.transform.scale(pygame.image.load("images/chapter4.jpg").convert(), (1088, 612)),
-            "ending_stop": pygame.transform.scale(pygame.image.load("images/chapter5.jpg").convert(), (1088, 612)),
-            "ending_drive": pygame.transform.scale(pygame.image.load("images/chapter5.jpg").convert(), (1088, 612))
+            "start": pygame.transform.scale(pygame.image.load(resource_path("images/chapter1.jpg")).convert(), (1088, 612)),
+            "decision_drink": pygame.transform.scale(pygame.image.load(resource_path("images/chapter2.jpg")).convert(), (1088, 612)),
+            "decision_no_drink": pygame.transform.scale(pygame.image.load(resource_path("images/chapter2.jpg")).convert(), (1088, 612)),
+            "scene_2": pygame.transform.scale(pygame.image.load(resource_path("images/chapter3_start.jpg")).convert(), (1088, 612)),
+            "decision_exit": pygame.transform.scale(pygame.image.load(resource_path("images/chapter3_start.jpg")).convert(), (1088, 612)),
+            "scene_3": pygame.transform.scale(pygame.image.load(resource_path("images/chapter4.jpg")).convert(), (1088, 612)),
+            "decision_try_stop": pygame.transform.scale(pygame.image.load(resource_path("images/chapter4.jpg")).convert(), (1088, 612)),
+            "scene_4": pygame.transform.scale(pygame.image.load(resource_path("images/chapter4.jpg")).convert(), (1088, 612)),
+            "decision_seat": pygame.transform.scale(pygame.image.load(resource_path("images/chapter4.jpg")).convert(), (1088, 612)),
+            "ending_stop": pygame.transform.scale(pygame.image.load(resource_path("images/chapter5.jpg")).convert(), (1088, 612)),
+            "ending_drive": pygame.transform.scale(pygame.image.load(resource_path("images/chapter5.jpg")).convert(), (1088, 612))
         }
-
-        self.scene2_end_bg = pygame.transform.scale(
-            pygame.image.load("images/chapter3_end.jpg").convert(), (1088, 612)
-        )
-
+        self.scene2_end_bg = pygame.transform.scale(pygame.image.load(resource_path("images/chapter3_end.jpg")).convert(), (1088, 612))
+        
         # Game state and dialogues (script based on your story)
         self.dialogues = {
             "start": [
@@ -179,7 +179,6 @@ class Game:
             "ending_drive": [
                 "Vennen din kjørte under påvirkning ..."
             ],
-            # Wrong decision info dialogues:
             "info_drink": [
                 "Ruspåvirket tilstand er en av hovedårsakene til at unge dør i trafikken."
             ],
@@ -199,8 +198,8 @@ class Game:
         self.current_line_index = 0   # Track which dialogue line you're on.
         self.dialogue_timer = 0       # Timer for typewriter effect (ms)
         self.dialogue_finished = False
-        self.post_dialogue_timer = 0  # (No longer used for auto-advance)
-
+        self.post_dialogue_timer = 0  # (Not used for auto-advance)
+        
         # Button layout (for decision buttons)
         self.button_width = 200
         self.button_height = 50
@@ -211,19 +210,18 @@ class Game:
         total_buttons_width = self.button_width * 2 + 20  # two buttons with 20px gap
         self.left_x = (1088 - total_buttons_width) // 2
         self.right_x = self.left_x + self.button_width + 20
-
+        
         # Decision buttons (will be created when dialogue is finished)
         self.decision_buttons = {}
-
         self.info_mode = False
         self.info_text = ""
         # Set a flag for alternate (cycling) images once we leave the "start" scene.
         self.alternate = (self.current_scene != "start")
-
+        
         # Initialize fade parameters for ending and load logo image.
         self.ending_fade = 0
         try:
-            self.logo_img = pygame.image.load("images/logo.png").convert_alpha()
+            self.logo_img = pygame.image.load(resource_path("images/logo.png")).convert_alpha()
         except Exception as e:
             print("Error loading logo image:", e)
             self.logo_img = None
@@ -406,45 +404,45 @@ class Game:
             self.screen.blit(fade_surf, (0, 0))
             if self.logo_img and self.ending_fade >= 255:
                 self.draw_info_logo()
-
+        
         # Update and draw the persistent Music button
         self.music_button.update()
         self.music_button.draw(self.screen)
 
-def run(self):
-    # Import the function to read the music volume from settings
-    from settings import read_music_config
-    while self.running:
-        dt = self.clock.tick(60)
-        # Check and update music track based on the current scene.
-        desired_track = os.path.join("sound", "scene1.wav") if self.current_scene == "start" else os.path.join("sound", "scene2+.wav")
-        if self.current_music != desired_track:
-            self.current_music = desired_track
-            pygame.mixer.music.load(self.current_music)
-            pygame.mixer.music.play(-1)
-        # Read the music volume from music_config.txt and set the mixer volume.
-        music_volume = read_music_config()
-        pygame.mixer.music.set_volume(min(music_volume / 5.0, 1.0))
-        if not self.music_on:
-            pygame.mixer.music.pause()
-
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                self.running = False
-            # Always allow the Music button to handle events.
-            self.music_button.handle_event(event)
-            if self.decision_buttons:
-                for btn in self.decision_buttons.values():
-                    btn.handle_event(event)
-            else:
-                if event.type == pygame.MOUSEBUTTONDOWN:
-                    if self.dialogue_finished:
-                        self.advance_dialogue()
-        self.update_dialogue(dt)
-        self.draw_scene()
-        pygame.display.flip()
-    pygame.quit()
-    sys.exit()
+    def run(self):
+        # Import the function to read the music volume from settings
+        from settings import read_music_config
+        while self.running:
+            dt = self.clock.tick(60)
+            # Check and update music track based on the current scene.
+            desired_track = os.path.join("sound", "scene1.wav") if self.current_scene == "start" else os.path.join("sound", "scene2+.wav")
+            if self.current_music != desired_track:
+                self.current_music = desired_track
+                pygame.mixer.music.load(resource_path(self.current_music))
+                pygame.mixer.music.play(-1)
+            # Read the music volume from music_config.txt and set the mixer volume.
+            music_volume = read_music_config()
+            pygame.mixer.music.set_volume(min(music_volume / 5.0, 1.0))
+            if not self.music_on:
+                pygame.mixer.music.pause()
+            
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self.running = False
+                # Always allow the Music button to handle events.
+                self.music_button.handle_event(event)
+                if self.decision_buttons:
+                    for btn in self.decision_buttons.values():
+                        btn.handle_event(event)
+                else:
+                    if event.type == pygame.MOUSEBUTTONDOWN:
+                        if self.dialogue_finished:
+                            self.advance_dialogue()
+            self.update_dialogue(dt)
+            self.draw_scene()
+            pygame.display.flip()
+        pygame.quit()
+        sys.exit()
 
 if __name__ == "__main__":
     game = Game()  # Defaults to "start" scene.

@@ -1,1 +1,1 @@
-music_volume=3.3000000000000003
+music_volume=2.5

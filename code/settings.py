@@ -1,7 +1,13 @@
+import sys, os
 import pygame
 import sys
 import os
 from menu import do_fade_transition, run_menu
+
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(base_path, relative_path)
 
 pygame.init()
 
@@ -62,7 +68,7 @@ def update_music_config(new_value):
 
 # Load the button click sound from the "sound" folder using try/except
 try:
-    button_click_sound = pygame.mixer.Sound("sound/button_click.wav")  # Adjust file name/extension if necessary.
+    button_click_sound = pygame.mixer.Sound(resource_path("sound/button_click.wav"))
     # Set volume using the config value (scaled to 0.0-1.0)
     config_volume = read_config()
     button_click_sound.set_volume(min(config_volume / 5.0, 1.0))
@@ -158,7 +164,7 @@ def settings_screen():
     initial_click = read_config()
     initial_music = read_music_config()
 
-    background_img = pygame.image.load("images/background_chapter.png").convert()
+    background_img = pygame.image.load(resource_path("images/background_chapter.png")).convert()
     background_img = pygame.transform.scale(background_img, (SCREEN_WIDTH, SCREEN_HEIGHT))
 
     # Create UI elements.

@@ -1,7 +1,13 @@
+import sys, os
 import pygame
 import sys
 import os
 from transition import FadeTransition  # Import the transition class
+
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(base_path, relative_path)
 
 pygame.init()
 
@@ -40,7 +46,7 @@ font = pygame.font.Font(None, 36)
 target_width, target_height = 400, 200
 
 # Load the full square logo image.
-orig_logo = pygame.image.load("images/logo.png").convert_alpha()
+orig_logo = pygame.image.load(resource_path("images/logo.png")).convert_alpha()
 
 # Use the entire image rather than cropping.
 logo_content = orig_logo
@@ -62,8 +68,8 @@ y_offset = (target_height - scaled_height) // 2
 logo_img.blit(scaled_logo, (x_offset, y_offset))
 
 # Load images
-button_box_img = pygame.image.load("images/button_box.png").convert_alpha()
-background_menu_img = pygame.image.load("images/background_menu.png").convert()
+button_box_img = pygame.image.load(resource_path("images/button_box.png")).convert_alpha()
+background_menu_img = pygame.image.load(resource_path("images/background_menu.png")).convert()
 background_menu_img = pygame.transform.scale(background_menu_img, (SCREEN_WIDTH, SCREEN_HEIGHT))
 
 # Read volume from config file
@@ -71,7 +77,7 @@ config_volume = read_config()
 
 # Load button click sound and set volume (slider range is 0.0–5.0; scaled to 0.0–1.0)
 try:
-    button_click_sound = pygame.mixer.Sound(os.path.join("sound", "button_click.wav"))
+    button_click_sound = pygame.mixer.Sound(resource_path(os.path.join("sound", "button_click.wav")))
     button_click_sound.set_volume(min(config_volume / 5.0, 1.0))
 except Exception as e:
     print("Error loading sound:", e)
