@@ -1,4 +1,3 @@
-import sys, os
 import pygame
 import sys
 import os
@@ -43,7 +42,7 @@ BLACK = (0, 0, 0)
 font = pygame.font.Font(None, 36)
 
 # Define your target size for the logo display.
-target_width, target_height = 400, 200
+target_width, target_height = 600, 300
 
 # Load the full square logo image.
 orig_logo = pygame.image.load(resource_path("images/logo.png")).convert_alpha()
@@ -215,7 +214,7 @@ def run_menu():
     running = True
     while running:
         screen.blit(background_menu_img, (0, 0))
-        logo_x = -35
+        logo_x = -120
         logo_y = 20
         screen.blit(logo_img, (logo_x, logo_y))
         

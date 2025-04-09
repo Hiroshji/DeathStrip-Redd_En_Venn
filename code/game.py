@@ -29,6 +29,16 @@ def read_config():
             f.write("volume=1.0")
         return 1.0
 
+# Load the new image for decision buttons
+decision_image = pygame.image.load(resource_path("images/button_icon.png")).convert_alpha()
+
+def new_decision_draw(self, screen):
+    scaled_img = pygame.transform.smoothscale(decision_image, (self.rect.width, self.rect.height))
+    screen.blit(scaled_img, (self.rect.x, self.rect.y))
+    text_surf = font.render(self.text, True, WHITE)
+    text_rect = text_surf.get_rect(center=self.rect.center)
+    screen.blit(text_surf, text_rect)
+
 # Load assets
 button_box_img = pygame.image.load(resource_path("images/button_box.png")).convert_alpha()
 try:
@@ -164,7 +174,7 @@ class Game:
             ],
             "scene_3": [
                 "Du: Vent litt, kanskje vi heller kan bestille en taxi?",
-                "Venn: Nei, nei, jeg er helt fin. Dette går bra.",
+                "Venn: Nei, nei, jeg har det helt fint. Dette går bra.",
                 "Du: Men tenk om noe skjer? Det er ikke verdt risikoen.",
                 "Venn: Jeg sier det går fint. Hvorfor lager du så mye drama?"
             ],
@@ -174,7 +184,7 @@ class Game:
                 "Venn: Slutt å overtenke, det går bra! Vil du hjem eller ikke?"
             ],
             "ending_stop": [
-                "Du stoppet vennen din."
+                "Dette kan bli realiteten."
             ],
             "ending_drive": [
                 "Vennen din kjørte under påvirkning ..."
@@ -201,8 +211,8 @@ class Game:
         self.post_dialogue_timer = 0  # (Not used for auto-advance)
         
         # Button layout (for decision buttons)
-        self.button_width = 200
-        self.button_height = 50
+        self.button_width = 127
+        self.button_height = 71
         dialogue_box_height = 100
         bottom_margin = 20
         dialogue_y = 612 - dialogue_box_height - bottom_margin
@@ -228,7 +238,7 @@ class Game:
 
     def toggle_music(self):
         self.music_on = not self.music_on
-        self.music_button.text = "Music: On" if self.music_on else "Music: Off"
+        self.music_button.text = "Musikk: på" if self.music_on else "Musikk: av"
         if self.music_on:
             pygame.mixer.music.unpause()
         else:
@@ -276,7 +286,8 @@ class Game:
                 self.dialogue_timer = 0
                 self.dialogue_finished = False
 
-            if self.current_line_index >= len(self.current_dialogue_full) and self.current_scene.startswith("info_"):
+            if self.current_line_index >= len(self.current_dialogue_full) and \
+            (self.current_scene.startswith("info_") or self.current_scene.startswith("ending_")):
                 self.info_transition()
 
     def draw_text(self, text, x, y, color=(255, 255, 255)):
@@ -312,32 +323,38 @@ class Game:
     def create_decision_buttons(self):
         if self.current_scene == "start":
             self.decision_buttons = {
-                "Drikke": AnimatedButton("Drikke", self.left_x, self.button_y, self.button_width, self.button_height,
+                "Drikke": AnimatedButton("Drikk", self.left_x, self.button_y, self.button_width, self.button_height,
                                           lambda: self.handle_decision("drink")),
-                "Ikke Drikke": AnimatedButton("Ikke Drikke", self.right_x, self.button_y, self.button_width, self.button_height,
+                "Ikke Drikke": AnimatedButton("Ikke Drikk", self.right_x, self.button_y, self.button_width, self.button_height,
                                                lambda: self.handle_decision("no_drink"))
             }
         elif self.current_scene == "scene_2":
             self.decision_buttons = {
-                "Ikke gå": AnimatedButton("Ikke gå", self.left_x, self.button_y, self.button_width, self.button_height,
+                "Ikke gå": AnimatedButton("Stopp han", self.left_x, self.button_y, self.button_width, self.button_height,
                                           lambda: self.handle_decision("exit_decision_A")),
-                "Gå med": AnimatedButton("Gå med", self.right_x, self.button_y, self.button_width, self.button_height,
+                "Gå med": AnimatedButton("Følg etter", self.right_x, self.button_y, self.button_width, self.button_height,
                                           lambda: self.handle_decision("exit_decision_B"))
             }
         elif self.current_scene == "scene_3":
             self.decision_buttons = {
-                "Stoppe": AnimatedButton("Stoppe", self.left_x, self.button_y, self.button_width, self.button_height,
+                "Stoppe": AnimatedButton("Stopp han", self.left_x, self.button_y, self.button_width, self.button_height,
                                          lambda: self.handle_decision("try_stop_A")),
-                "Ikke Stoppe": AnimatedButton("Ikke Stoppe", self.right_x, self.button_y, self.button_width, self.button_height,
+                "Ikke Stoppe": AnimatedButton("Gå mot bil", self.right_x, self.button_y, self.button_width, self.button_height,
                                               lambda: self.handle_decision("try_stop_B"))
             }
         elif self.current_scene == "scene_4":
             self.decision_buttons = {
-                "seat_A": AnimatedButton("ikke Sitte", self.left_x, self.button_y, self.button_width, self.button_height,
-                                         lambda: self.handle_decision("seat_A")),
-                "seat_B": AnimatedButton("Sitte", self.right_x, self.button_y, self.button_width, self.button_height,
-                                         lambda: self.handle_decision("seat_B"))
+                "seat_A": AnimatedButton("Stå igjen", self.left_x, self.button_y, self.button_width, self.button_height,
+                                        lambda: self.handle_decision("seat_B")),  # swapped: now takes the outcome of seat_B
+                "seat_B": AnimatedButton("Sitt på", self.right_x, self.button_y, self.button_width, self.button_height,
+                                        lambda: self.handle_decision("seat_A"))   # swapped: now takes the outcome of seat_A
             }
+        for btn in self.decision_buttons.values():
+            btn.draw = new_decision_draw.__get__(btn, AnimatedButton)
+
+# remove terminal
+
+# make logo screen bigger
 
     def handle_decision(self, decision):
         if decision == "drink":
