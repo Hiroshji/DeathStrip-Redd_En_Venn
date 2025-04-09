@@ -288,7 +288,7 @@ class Game:
                 self.dialogue_finished = False
 
             if self.current_line_index >= len(self.current_dialogue_full) and \
-            (self.current_scene.startswith("info_") or self.current_scene.startswith("ending_")):
+               (self.current_scene.startswith("info_") or self.current_scene.startswith("ending_")):
                 self.info_transition()
 
     def draw_text(self, text, x, y, color=(255, 255, 255)):
@@ -346,16 +346,12 @@ class Game:
         elif self.current_scene == "scene_4":
             self.decision_buttons = {
                 "seat_A": AnimatedButton("Stå igjen", self.left_x, self.button_y, self.button_width, self.button_height,
-                                        lambda: self.handle_decision("seat_B")),  # swapped: now takes the outcome of seat_B
+                                        lambda: self.handle_decision("seat_B")),
                 "seat_B": AnimatedButton("Sitt på", self.right_x, self.button_y, self.button_width, self.button_height,
-                                        lambda: self.handle_decision("seat_A"))   # swapped: now takes the outcome of seat_A
+                                        lambda: self.handle_decision("seat_A"))
             }
         for btn in self.decision_buttons.values():
             btn.draw = new_decision_draw.__get__(btn, AnimatedButton)
-
-# remove terminal
-
-# make logo screen bigger
 
     def handle_decision(self, decision):
         if decision == "drink":
@@ -391,12 +387,13 @@ class Game:
             chapter5_bg = self.backgrounds.get("ending_stop")
             if chapter5_bg:
                 self.screen.blit(chapter5_bg, (0, 0))
-                
-            # Draw the final dialogue text if there's any.
-            if self.dialogue_progress:
-                self.draw_dialogue_box(self.dialogue_progress)
+            else:
+                self.screen.fill((0, 0, 0))
             
-            # No fade effect—just display the logo if present.
+            # Force using the stored final dialogue text for ending scenes
+            dialogue_to_draw = self.current_dialogue_full[-1] if self.current_dialogue_full else ""
+            self.draw_dialogue_box(dialogue_to_draw)
+            
             if self.logo_img:
                 self.draw_info_logo()
         elif self.current_scene == "scene_2" and self.current_line_index >= 2:
@@ -421,7 +418,6 @@ class Game:
                     btn.update()
                     btn.draw(self.screen)
         
-        # Update and draw the persistent Music button
         self.music_button.update()
         self.music_button.draw(self.screen)
 
