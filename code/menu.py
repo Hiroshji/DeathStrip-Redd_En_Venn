@@ -30,7 +30,7 @@ def read_config():
 # Screen settings
 SCREEN_WIDTH, SCREEN_HEIGHT = 1088, 612
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-pygame.display.set_caption("Deathtrip - Menu")
+pygame.display.set_caption("Deathtrip")
 
 # Colors
 WHITE = (255, 255, 255)
@@ -120,6 +120,7 @@ class AnimatedButton:
 
 # Helper function to perform a wipe transition before executing an action.
 def do_fade_transition(action):
+    pygame.event.clear()  # Clear pending events
     fade_effect = FadeTransition(screen, speed=10, color=BLACK)
     fade_effect.start()
     clock = pygame.time.Clock()
@@ -129,12 +130,10 @@ def do_fade_transition(action):
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
-        # Show current background during fade in phase
         if fade_effect.phase == "fade_in":
             screen.blit(background_menu_img, (0, 0))
-        # When fade reaches black, trigger the new scene
         if not triggered_action and fade_effect.phase == "fade_out":
-            action()  # Setup the new scene
+            action()  
             triggered_action = True
         fade_effect.update()
         fade_effect.draw()
@@ -204,10 +203,10 @@ def select_scene():
 
 # Create main menu buttons.
 buttons = [
-    AnimatedButton("Start Spill", 20, SCREEN_HEIGHT - 220, 250, 70, start_game),
+    AnimatedButton("Start Spill", 35, SCREEN_HEIGHT - 240, 250, 70, start_game),
     # Replace "Kapitel" button action with the new select_scene menu:
-    AnimatedButton("Kapittel", 40, SCREEN_HEIGHT - 150, 250, 70, lambda: do_fade_transition(select_scene)),
-    AnimatedButton("Innstillinger", 60, SCREEN_HEIGHT - 80, 250, 70, open_settings)
+    AnimatedButton("Kapittel", 55, SCREEN_HEIGHT - 160, 250, 70, lambda: do_fade_transition(select_scene)),
+    AnimatedButton("Innstillinger", 75, SCREEN_HEIGHT - 80, 250, 70, open_settings)
 ]
 
 def run_menu():

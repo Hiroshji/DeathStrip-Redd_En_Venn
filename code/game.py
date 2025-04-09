@@ -2,7 +2,6 @@ import sys, os
 import pygame
 
 def resource_path(relative_path):
-    """ Get absolute path to resource, works for dev and for PyInstaller """
     base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
     return os.path.join(base_path, relative_path)
 
@@ -11,7 +10,8 @@ pygame.init()
 # Set video mode
 SCREEN_WIDTH, SCREEN_HEIGHT = 1088, 612
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-pygame.display.set_caption("Deathtrip - Game")
+if __name__ == "__main__":
+    pygame.display.set_caption("Settings")
 
 # --- Config file functions ---
 def read_config():
@@ -89,9 +89,9 @@ class AnimatedButton:
                     self.action()
 
 class Game:
-    # Modified __init__ to accept an optional start_scene parameter.
     def __init__(self, start_scene="start"):
         self.screen = screen
+        pygame.display.set_caption("Death Trip - Redd en venn")
         self.clock = pygame.time.Clock()
         self.running = True
         self.font = pygame.font.SysFont("Arial", 24)
@@ -102,7 +102,7 @@ class Game:
         self.current_music = None  # To track which music is loaded
         
         # Create a persistent Music toggle button (positioned at top-left)
-        self.music_button = AnimatedButton("Music: On", 20, 20, 120, 40, self.toggle_music)
+        self.music_button = AnimatedButton("Musikk: på", 20, 20, 120, 40, self.toggle_music)
         
         # Load the original images for scene "start"
         original_you = pygame.image.load(resource_path("images/you.png")).convert_alpha()
@@ -217,9 +217,10 @@ class Game:
         bottom_margin = 20
         dialogue_y = 612 - dialogue_box_height - bottom_margin
         self.button_y = dialogue_y - self.button_height - 10
-        total_buttons_width = self.button_width * 2 + 20  # two buttons with 20px gap
+        gap = 100  # increased gap between buttons
+        total_buttons_width = self.button_width * 2 + gap  # two buttons with gap
         self.left_x = (1088 - total_buttons_width) // 2
-        self.right_x = self.left_x + self.button_width + 20
+        self.right_x = self.left_x + self.button_width + gap
         
         # Decision buttons (will be created when dialogue is finished)
         self.decision_buttons = {}
@@ -370,7 +371,7 @@ class Game:
         elif decision == "try_stop_B":
             self.current_scene = "scene_4"
         elif decision == "seat_A":
-            self.current_scene = "ending_stop"
+            self.current_scene = "bad_ending"       # Bad ending: the one when you sit in.
         elif decision == "seat_B":
             self.current_scene = "info_sete_B"
         self.reset_dialogue()
@@ -386,12 +387,18 @@ class Game:
             self.screen.blit(small_logo, logo_rect)
 
     def draw_scene(self):
-        if self.current_scene in {"ending_stop", "ending_drive"}:
-            bg = self.backgrounds.get("ending_stop")
-            if bg:
-                self.screen.blit(bg, (0, 0))
-            else:
-                self.screen.fill((0, 0, 0))
+        if self.current_scene in {"ending_stop", "ending_drive", "bad_ending"}:
+            chapter5_bg = self.backgrounds.get("ending_stop")
+            if chapter5_bg:
+                self.screen.blit(chapter5_bg, (0, 0))
+                
+            # Draw the final dialogue text if there's any.
+            if self.dialogue_progress:
+                self.draw_dialogue_box(self.dialogue_progress)
+            
+            # No fade effect—just display the logo if present.
+            if self.logo_img:
+                self.draw_info_logo()
         elif self.current_scene == "scene_2" and self.current_line_index >= 2:
             self.screen.blit(self.scene2_end_bg, (0, 0))
         else:
@@ -404,40 +411,29 @@ class Game:
         if self.current_scene.startswith("info_"):
             self.draw_info_logo()
         
-        if self.current_line_index < len(self.current_dialogue_full):
-            self.draw_dialogue_box(self.dialogue_progress)
-        else:
-            if not self.decision_buttons:
-                self.create_decision_buttons()
-            for btn in self.decision_buttons.values():
-                btn.update()
-                btn.draw(self.screen)
-        
-        if self.current_scene in {"ending_stop", "ending_drive"} and self.current_line_index >= len(self.current_dialogue_full):
-            self.ending_fade = min(255, self.ending_fade + self.clock.get_time() / 5)
-            fade_surf = pygame.Surface((1088, 612))
-            fade_surf.fill((0, 0, 0))
-            fade_surf.set_alpha(self.ending_fade)
-            self.screen.blit(fade_surf, (0, 0))
-            if self.logo_img and self.ending_fade >= 255:
-                self.draw_info_logo()
+        if self.current_scene not in {"ending_stop", "ending_drive", "bad_ending"}:
+            if self.current_line_index < len(self.current_dialogue_full):
+                self.draw_dialogue_box(self.dialogue_progress)
+            else:
+                if not self.decision_buttons:
+                    self.create_decision_buttons()
+                for btn in self.decision_buttons.values():
+                    btn.update()
+                    btn.draw(self.screen)
         
         # Update and draw the persistent Music button
         self.music_button.update()
         self.music_button.draw(self.screen)
 
     def run(self):
-        # Import the function to read the music volume from settings
         from settings import read_music_config
         while self.running:
             dt = self.clock.tick(60)
-            # Check and update music track based on the current scene.
             desired_track = os.path.join("sound", "scene1.wav") if self.current_scene == "start" else os.path.join("sound", "scene2+.wav")
             if self.current_music != desired_track:
                 self.current_music = desired_track
                 pygame.mixer.music.load(resource_path(self.current_music))
                 pygame.mixer.music.play(-1)
-            # Read the music volume from music_config.txt and set the mixer volume.
             music_volume = read_music_config()
             pygame.mixer.music.set_volume(min(music_volume / 5.0, 1.0))
             if not self.music_on:
@@ -446,7 +442,6 @@ class Game:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.running = False
-                # Always allow the Music button to handle events.
                 self.music_button.handle_event(event)
                 if self.decision_buttons:
                     for btn in self.decision_buttons.values():
@@ -457,7 +452,7 @@ class Game:
                             self.advance_dialogue()
             self.update_dialogue(dt)
             self.draw_scene()
-            pygame.display.flip()
+            pygame.display.flip()            
         pygame.quit()
         sys.exit()
 

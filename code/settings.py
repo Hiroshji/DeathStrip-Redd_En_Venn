@@ -14,7 +14,6 @@ pygame.init()
 # Screen settings
 SCREEN_WIDTH, SCREEN_HEIGHT = 1088, 612
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-pygame.display.set_caption("Settings")
 
 # Colors and font
 WHITE = (255, 255, 255)
@@ -168,7 +167,7 @@ def settings_screen():
     background_img = pygame.transform.scale(background_img, (SCREEN_WIDTH, SCREEN_HEIGHT))
 
     # Create UI elements.
-    sample_button = AnimatedButton("Test Button", 100, 100, 200, 50,
+    sample_button = AnimatedButton("Test volum", 100, 100, 200, 50,
                                    lambda: print("Button action executed"))
     # Click Sound Slider
     click_slider = Slider(100, 200, 300, 20, min_val=0.0, max_val=5.0, initial=initial_click, slider_type='click')
@@ -201,8 +200,8 @@ def settings_screen():
         music_slider.draw(screen)
         return_button.draw(screen)
 
-        click_text = font.render(f"Click Volume: {click_slider.value:.2f}", True, WHITE)
-        music_text = font.render(f"Music Volume: {music_slider.value:.2f}", True, WHITE)
+        click_text = font.render(f"Meny volum: {click_slider.value:.2f}", True, WHITE)
+        music_text = font.render(f"Musikk volum: {music_slider.value:.2f}", True, WHITE)
         screen.blit(click_text, (100, 230))
         screen.blit(music_text, (100, 280))
 
