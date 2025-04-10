@@ -7,13 +7,11 @@ def resource_path(relative_path):
 
 pygame.init()
 
-# Set video mode
 SCREEN_WIDTH, SCREEN_HEIGHT = 1088, 612
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 if __name__ == "__main__":
     pygame.display.set_caption("Settings")
 
-# --- Config file functions ---
 def read_config():
     config_path = "config.txt"
     if os.path.exists(config_path):
@@ -29,7 +27,6 @@ def read_config():
             f.write("volume=1.0")
         return 1.0
 
-# Load the new image for decision buttons
 decision_image = pygame.image.load(resource_path("images/button_icon.png")).convert_alpha()
 
 def new_decision_draw(self, screen):
@@ -39,7 +36,6 @@ def new_decision_draw(self, screen):
     text_rect = text_surf.get_rect(center=self.rect.center)
     screen.blit(text_surf, text_rect)
 
-# Load assets
 button_box_img = pygame.image.load(resource_path("images/button_box.png")).convert_alpha()
 try:
     button_click_sound = pygame.mixer.Sound(resource_path(os.path.join("sound", "button_click.wav")))
@@ -53,7 +49,6 @@ font = pygame.font.SysFont("Arial", 24)
 WHITE = (255, 255, 255)
 DARK_GRAY = (150, 150, 150)
 
-# AnimatedButton class for decisions (with sound and animation)
 class AnimatedButton:
     def __init__(self, text, x, y, width, height, action):
         self.text = text
@@ -96,15 +91,12 @@ class Game:
         self.running = True
         self.font = pygame.font.SysFont("Arial", 24)
         
-        # Music settings
         self.config_volume = read_config()
         self.music_on = True
         self.current_music = None  # To track which music is loaded
         
-        # Create a persistent Music toggle button (positioned at top-left)
         self.music_button = AnimatedButton("Musikk: på", 20, 20, 120, 40, self.toggle_music)
         
-        # Load the original images for scene "start"
         original_you = pygame.image.load(resource_path("images/you.png")).convert_alpha()
         original_venn = pygame.image.load(resource_path("images/venn.png")).convert_alpha()
         target_width = 300  # Change this value for a different size
@@ -115,7 +107,6 @@ class Game:
         self.you_img = pygame.transform.scale(original_you, (target_width, int(you_height * you_scale)))
         self.venn_img = pygame.transform.scale(original_venn, (target_width, int(venn_height * venn_scale)))
         
-        # Load alternate images for scenes after "start"
         alt_you1 = pygame.image.load(resource_path("images/concerned_you1.png")).convert_alpha()
         alt_you2 = pygame.image.load(resource_path("images/concerned_you2.png")).convert_alpha()
         concerned_you_scale = target_width / alt_you1.get_width()
@@ -134,14 +125,11 @@ class Game:
             pygame.transform.scale(alt_venn3, (target_width, int(alt_venn3.get_height() * drunk_venn_scale)))
         ]
         
-        # Counters to cycle images when characters speak
         self.du_img_index = 0
         self.venn_img_index = 0
         
-        # Set the starting scene based on the parameter.
         self.current_scene = start_scene
         
-        # Preload chapter backgrounds (using resource_path for all images)
         self.backgrounds = {
             "start": pygame.transform.scale(pygame.image.load(resource_path("images/chapter1.jpg")).convert(), (1088, 612)),
             "decision_drink": pygame.transform.scale(pygame.image.load(resource_path("images/chapter2.jpg")).convert(), (1088, 612)),
@@ -157,7 +145,6 @@ class Game:
         }
         self.scene2_end_bg = pygame.transform.scale(pygame.image.load(resource_path("images/chapter3_end.jpg")).convert(), (1088, 612))
         
-        # Game state and dialogues (script based on your story)
         self.dialogues = {
             "start": [
                 "Venn: Hei, kom og ta en shot med oss!",
@@ -210,7 +197,6 @@ class Game:
         self.dialogue_finished = False
         self.post_dialogue_timer = 0  # (Not used for auto-advance)
         
-        # Button layout (for decision buttons)
         self.button_width = 127
         self.button_height = 71
         dialogue_box_height = 100
@@ -222,14 +208,11 @@ class Game:
         self.left_x = (1088 - total_buttons_width) // 2
         self.right_x = self.left_x + self.button_width + gap
         
-        # Decision buttons (will be created when dialogue is finished)
         self.decision_buttons = {}
         self.info_mode = False
         self.info_text = ""
-        # Set a flag for alternate (cycling) images once we leave the "start" scene.
         self.alternate = (self.current_scene != "start")
         
-        # Initialize fade parameters for ending and load logo image.
         self.ending_fade = 0
         try:
             self.logo_img = pygame.image.load(resource_path("images/logo.png")).convert_alpha()
@@ -346,9 +329,9 @@ class Game:
         elif self.current_scene == "scene_4":
             self.decision_buttons = {
                 "seat_A": AnimatedButton("Stå igjen", self.left_x, self.button_y, self.button_width, self.button_height,
-                                        lambda: self.handle_decision("seat_B")),
+                                        lambda: self.handle_decision("seat_B")),  # swapped: now takes the outcome of seat_B
                 "seat_B": AnimatedButton("Sitt på", self.right_x, self.button_y, self.button_width, self.button_height,
-                                        lambda: self.handle_decision("seat_A"))
+                                        lambda: self.handle_decision("seat_A"))   # swapped: now takes the outcome of seat_A
             }
         for btn in self.decision_buttons.values():
             btn.draw = new_decision_draw.__get__(btn, AnimatedButton)
@@ -367,14 +350,14 @@ class Game:
         elif decision == "try_stop_B":
             self.current_scene = "scene_4"
         elif decision == "seat_A":
-            self.current_scene = "bad_ending"       # Bad ending: the one when you sit in.
+            self.current_scene = "ending_stop"       # Modified: when sitting in, play "ending_stop" dialogue.
         elif decision == "seat_B":
             self.current_scene = "info_sete_B"
         self.reset_dialogue()
 
     def info_transition(self):
-        self.current_scene = "start"
-        self.reset_dialogue()
+        # End the game loop so control returns to the menu.
+        self.running = False
 
     def draw_info_logo(self):
         if self.logo_img:
@@ -417,6 +400,15 @@ class Game:
                 for btn in self.decision_buttons.values():
                     btn.update()
                     btn.draw(self.screen)
+            
+        if self.current_scene in {"ending_stop", "ending_drive"} and self.current_line_index >= len(self.current_dialogue_full):
+            self.ending_fade = min(255, self.ending_fade + self.clock.get_time() / 5)
+            fade_surf = pygame.Surface((1088, 612))
+            fade_surf.fill((0, 0, 0))
+            fade_surf.set_alpha(self.ending_fade)
+            self.screen.blit(fade_surf, (0, 0))
+            if self.logo_img and self.ending_fade >= 255:
+                self.draw_info_logo()
         
         self.music_button.update()
         self.music_button.draw(self.screen)
@@ -448,9 +440,8 @@ class Game:
                             self.advance_dialogue()
             self.update_dialogue(dt)
             self.draw_scene()
-            pygame.display.flip()            
-        pygame.quit()
-        sys.exit()
+            pygame.display.flip()
+        pygame.mixer.music.stop()
 
 if __name__ == "__main__":
     game = Game()  # Defaults to "start" scene.
